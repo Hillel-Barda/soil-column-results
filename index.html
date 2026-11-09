@@ -32,7 +32,7 @@ tr:nth-child(even) td{background:var(--zebra)}td.hi{font-weight:700}
 .kpi b{display:block;font-size:22px;color:var(--blue);font-variant-numeric:tabular-nums}.kpi span{font-size:12px;color:var(--mute)}
 .gwrap{overflow-x:auto}
 .grid{display:grid;grid-template-columns:110px repeat(5,minmax(200px,1fr));gap:10px;align-items:stretch;min-width:1150px}
-.gh{background:var(--blue);color:#fff;font-weight:600;text-align:center;padding:8px;border-radius:6px}
+.gh{background:var(--blue);color:#fff;font-weight:600;text-align:center;padding:8px;border-radius:6px;display:flex;flex-direction:column;justify-content:center}.gd{display:block;font-weight:400;font-size:13px;opacity:.9}
 .gl{background:var(--label);font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:6px;padding:4px}
 .cell{background:var(--card);border-radius:8px;box-shadow:0 1px 2px var(--shadow);padding:6px;min-height:190px}
 .cell.empty{background:transparent;box-shadow:none;color:var(--mute);font-style:italic;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
@@ -72,7 +72,6 @@ footer{padding-block:16px;color:var(--mute);font-size:12px;border-top:1px solid 
 <header class="pad"><div class="hrow"><div><h1>Soil Column Experiment – Results</h1><p>FDA activity by depth and continuous sensor monitoring (VWC, temperature, permittivity, EC)</p></div><div class="live" id="live"><i></i><span id="liveTxt">Connecting to data…</span></div></div></header>
 <nav class="pad"><a href="#fda">FDA activity</a><a href="#compare">Compare sensors</a><a href="#grid">All sensor graphs</a></nav>
 <main class="pad" id="main"><div class="card empty-state" id="empty">Loading the latest results from Results.xlsx and the CR300 logger…</div></main>
-<footer class="pad" id="foot">Data: Results.xlsx (Results, Sensor Data) and CR300Series_TDT_Data.dat · Updated daily · Click any graph to open it full screen</footer>
 <div class="tip" id="tip" hidden></div>
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovp"><div class="ovh"><h3 id="ovT"></h3><button id="ovPrev" aria-label="Previous graph">←</button><button id="ovNext" aria-label="Next graph">→</button><button id="ovX">Close</button></div><div class="ovb" id="ovB"></div><div class="leg" id="ovL"></div><div class="ovf">Hover to read values · Esc to close · ← → for other graphs</div></div></div>
 <div class="toast" id="toast" hidden></div>
@@ -148,7 +147,7 @@ function render(){
  const PH=Math.max(440,5*F.rows.length*22+60);
  const m=document.getElementById("main");
  m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – all samplings</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
-<section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div><div class="note">Sensors 1, 2, 3, 5: day 0 = 03.11.26 11:45. Control: day 0 = 05.11.26 08:40.</div></div></section>
+<section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
  let t="<tr><th>Sample</th><th>Date</th>"+F.cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
  F.rows.forEach(r=>{t+=`<tr><td>${r[0]}</td><td>${r[1]}</td>`+r[2].map((v,i)=>`<td>${v==null?"–":v.toFixed(4)}</td>`).join("")+"</tr>"});
@@ -191,20 +190,21 @@ function render(){
   g+=`<line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/><text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">FDA activity</text></svg>`;el.innerHTML=g},profLeg);
  const xm=Math.max(...names.map(n=>maxDay(S[n])));
  const cmpLeg=()=>names.map(n=>`<span><i style="background:${SC[n]}"></i>${n==="Control"?"Control – irrigated with water":"Sensor "+n}</span>`).join("");
- const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,xmax:xm,yt:P[cur][1]+(cur===3?" (Control in µS/cm – see grid)":"")},o||{}));
+ const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,xmax:xm,yt:P[cur][1]+(cur===3?" (Control in mS/cm)":"")},o||{}));
  const redrawCmp=()=>{CH.cmp.title="Compare sensors – "+P[cur][0];drawCmp(document.getElementById("cmp"));document.querySelectorAll("#pbtn button").forEach((b,i)=>b.classList.toggle("on",i===cur))};
  document.getElementById("pbtn").innerHTML=P.map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join("");
  document.querySelectorAll("#pbtn button").forEach(b=>b.onclick=()=>{cur=+b.dataset.i;redrawCmp()});
  document.getElementById("cmpLeg").innerHTML=cmpLeg();
  chart("cmp","Compare sensors – "+P[cur][0],drawCmp,cmpLeg);redrawCmp();
- const g=document.getElementById("g");let h=`<div></div>`+names.map(n=>`<div class="gh">${n==="Control"?"Control – irrigated with water":"Sensor "+n}</div>`).join("");
- const rows=P.concat([["Pore water EC","Pore water EC (µS/cm)","#1e4e8c"]]);
+ const DEPTHS={"1":"0.5 m","2":"1 m","3":"1.5 m","5":"2.5 m"};
+ const g=document.getElementById("g");let h=`<div></div>`+names.map(n=>`<div class="gh">${n==="Control"?"Control – irrigated with water":"Sensor "+n+`<span class="gd">${DEPTHS[n]}</span>`}</div>`).join("");
+ const rows=P.concat([["Pore water EC","Pore water EC (mS/cm)","#1e4e8c"]]);
  rows.forEach((p,ri)=>{h+=`<div class="gl">${p[0]}</div>`;names.forEach((n,ci)=>{const id=`c${ri}_${ci}`;
   if(ri===4&&n!=="Control")h+=`<div class="cell empty">${ci===0?"Pore water EC is measured only by the Control (TDR) sensor":""}</div>`;
   else h+=`<div class="cell zoom"><div class="ct">${n} – ${p[0]}</div><div id="${id}"></div></div>`})});
  g.innerHTML=h;
  rows.forEach((p,ri)=>names.forEach((n,ci)=>{const id=`c${ri}_${ci}`;if(!document.getElementById(id))return;
-  const yt=(n==="Control"&&ri===3)?"EC (µS/cm)":p[1];
+  const yt=(n==="Control"&&ri===3)?"EC (mS/cm)":p[1];
   chart(id,(n==="Control"?"Control":"Sensor "+n)+" – "+p[0],(el,o)=>line(el,[{c:p[2],pts:S[n].map(r=>[r[0],r[1+ri]])}],Object.assign({xmax:maxDay(S[n]),yt},o||{})))}));
  if(ovId&&CH[ovId])drawOv();else if(ovId)closeOv();
 }
