@@ -2,9 +2,8 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Soil Column Experiment – Results</title>
 <style>
 /* Layout: sticky section nav, FDA summary, comparison chart, then a parameter × sensor grid; any chart opens full screen. */
-:root{--blue:#2F6FB3;--blue-deep:#1e4e8c;--bg:#f4f6f9;--card:#fff;--ink:#1f2937;--mute:#5f6876;--line:#e5e7eb;--label:#dbe5f3;--grid:#eef0f3;--axis:#9ca3af;--zebra:#f8fafc;--shadow:rgba(0,0,0,.08);--scrim:rgba(15,23,42,.55);--ok:#2f7a3f;--ok-bg:#e3f2e6;--font:"Segoe UI",Calibri,Arial,system-ui,sans-serif}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11161d;--card:#1a212b;--ink:#e6eaf0;--mute:#9aa4b2;--line:#2b3440;--label:#22324a;--grid:#262f3a;--axis:#5b6676;--zebra:#1e2631;--shadow:rgba(0,0,0,.4);--scrim:rgba(0,0,0,.7);--blue:#5b95d6;--ok:#7fd093;--ok-bg:#1d3324;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#11161d;--card:#1a212b;--ink:#e6eaf0;--mute:#9aa4b2;--line:#2b3440;--label:#22324a;--grid:#262f3a;--axis:#5b6676;--zebra:#1e2631;--shadow:rgba(0,0,0,.4);--scrim:rgba(0,0,0,.7);--blue:#5b95d6;--ok:#7fd093;--ok-bg:#1d3324;color-scheme:dark}
+html{color-scheme:light}
+:root{--blue:#2F6FB3;--blue-deep:#1e4e8c;--bg:#ffffff;--card:#fff;--panel:#f6f8fb;--ink:#1f2937;--mute:#5f6876;--line:#e5e7eb;--label:#dbe5f3;--grid:#eef0f3;--axis:#9ca3af;--zebra:#f8fafc;--shadow:rgba(0,0,0,.08);--scrim:rgba(15,23,42,.55);--ok:#2f7a3f;--ok-bg:#e3f2e6;--font:"Segoe UI",Calibri,Arial,system-ui,sans-serif}
 *{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink)}
 .pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -147,25 +146,26 @@ function render(){
  order=[];for(const k in CH)delete CH[k];
  const F=D.fda,depth=F.cols.slice(0,5),S=D.sensors;
  const m=document.getElementById("main");
- m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="kpis" id="kpis"></div><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div><div class="note">Control = bucket, water only. Bold = highest value in each sampling (excluding drainage).</div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity over time by depth</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – first vs latest sampling</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
+ m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div><div class="note">Control = bucket, water only. Bold = highest value in each sampling (excluding drainage).</div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity over time by depth</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – all samplings</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div><div class="note">Sensors 1, 2, 3, 5: day 0 = 03.11.26 11:45. Control: day 0 = 05.11.26 08:40.</div></div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
  let t="<tr><th>Sample</th><th>Date</th>"+F.cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
  F.rows.forEach(r=>{const mx=Math.max(...r[2].slice(0,5).filter(v=>v!=null));t+=`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td>`+r[2].map((v,i)=>`<td class="${i<5&&v===mx?"hi":""}">${v==null?"–":v.toFixed(4)}</td>`).join("")+"</tr>"});
  document.getElementById("fdaT").innerHTML=t;
  const f0=F.rows[0],f1=F.rows[F.rows.length-1];const avg=a=>{a=a.filter(v=>v!=null);return a.reduce((x,y)=>x+y,0)/a.length};const f2=v=>v==null?"–":v.toFixed(2);
- if(f0)document.getElementById("kpis").innerHTML=[[F.rows.length,"Samplings ("+f0[1]+" – "+f1[1]+")"],[f2(f1[2][5]),"Drainage FDA, latest"],[avg(f1[2].slice(0,5)).toFixed(2),"Mean column FDA, latest"],[f2(f1[2][6]),"Control FDA, latest"],[D.latestReading||"–","Latest sensor reading"]].map(k=>`<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join("");
+
  const trendLeg=()=>depth.map((d,i)=>`<span><i style="background:${DC[i]}"></i>${d}</span>`).join("");
  document.getElementById("trendLeg").innerHTML=trendLeg();
  chart("trend","FDA activity over time by depth",(el,o)=>line(el,depth.map((d,i)=>({n:d,c:DC[i],dots:1,wd:2,pts:F.rows.map((r,j)=>[j,r[2][i]])})),Object.assign({w:560,h:280,xmin:-0.3,xmax:F.rows.length-0.7,xcats:F.rows.map(r=>r[1]),xt:"Sampling date",yt:"FDA activity"},o||{})),trendLeg);
- const profLeg=()=>`<span><i style="background:#a9c4e6"></i>First ${f0[0]} – ${f0[1]}</span><span><i style="background:#1e4e8c"></i>Latest ${f1[0]} – ${f1[1]}</span>`;
+ const PC=F.rows.map((r,k)=>{const t=F.rows.length<2?1:k/(F.rows.length-1);const l=80-t*55;return `hsl(212,58%,${l}%)`});
+ const profLeg=()=>F.rows.map((r,k)=>`<span><i style="background:${PC[k]}"></i>${r[0]} – ${r[1]}</span>`).join("");
  document.getElementById("profLeg").innerHTML=profLeg();
- chart("prof","Depth profile – first vs latest sampling",(el,o)=>{const W=o?o.w:560,H=o?o.h:280,L=o?80:60,R=24,T=10,B=o?44:34;const vals=[...f0[2].slice(0,5),...f1[2].slice(0,5)].filter(v=>v!=null);const mx=nice(0,Math.max(...vals),5);
-  const X=v=>L+v/mx.hi*(W-L-R),bh=(H-T-B)/5;let g=`<svg viewBox="0 0 ${W} ${H}">`;
+ chart("prof","Depth profile – all samplings",(el,o)=>{const W=o?o.w:560,H=o?o.h:280,L=o?80:60,R=34,T=10,B=o?44:34;const vals=F.rows.flatMap(r=>r[2].slice(0,5)).filter(v=>v!=null);const mx=nice(0,Math.max(...vals),5);
+  const X=v=>L+v/mx.hi*(W-L-R),bh=(H-T-B)/5,n=F.rows.length,sh=bh*0.8/n;let g=`<svg viewBox="0 0 ${W} ${H}">`;
   for(let v=0;v<=mx.hi+1e-9;v+=mx.st)g+=`<line class="gr" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text class="tk" x="${X(v)}" y="${H-B+16}" text-anchor="middle">${fmt(v)}</text>`;
   depth.forEach((d,i)=>{const y=T+i*bh;g+=`<text class="tk" x="${L-6}" y="${y+bh/2+3}" text-anchor="end">${d}</text>`;
-   [[f0,"#a9c4e6"],[f1,"#1e4e8c"]].forEach(([r,c],k)=>{const v=r[2][i]||0;g+=`<rect x="${L}" y="${y+bh*0.15+k*bh*0.35}" width="${X(v)-L}" height="${bh*0.33}" fill="${c}"><title>${r[0]} ${d}: ${v.toFixed(4)}</title></rect><text class="tk" x="${X(v)+4}" y="${y+bh*0.15+k*bh*0.35+bh*0.24}">${v.toFixed(2)}</text>`})});
-  g+=`<text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">FDA activity</text></svg>`;el.innerHTML=g},profLeg);
+   F.rows.forEach((r,k)=>{const v=r[2][i];if(v==null)return;const yy=y+bh*0.1+k*sh;g+=`<rect x="${L}" y="${yy}" width="${X(v)-L}" height="${sh*0.9}" fill="${PC[k]}"><title>${r[0]} (${r[1]}) ${d}: ${v.toFixed(4)}</title></rect>`;if(sh>=9)g+=`<text class="tk" x="${X(v)+4}" y="${yy+sh*0.45+3}">${v.toFixed(2)}</text>`})});
+  g+=`<line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/><text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">FDA activity</text></svg>`;el.innerHTML=g},profLeg);
  const xm=Math.max(...names.map(n=>maxDay(S[n])));
  const cmpLeg=()=>names.map(n=>`<span><i style="background:${SC[n]}"></i>${n==="Control"?"Control – irrigated with water":"Sensor "+n}</span>`).join("");
  const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,xmax:xm,yt:P[cur][1]+(cur===3?" (Control in µS/cm – see grid)":"")},o||{}));
