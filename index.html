@@ -147,7 +147,7 @@ function render(){
  const F=D.fda,depth=F.cols.slice(0,5),S=D.sensors;
  const PH=Math.max(440,5*F.rows.length*22+60);
  const m=document.getElementById("main");
- m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity over time by depth</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – all samplings</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
+ m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – all samplings</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div><div class="note">Sensors 1, 2, 3, 5: day 0 = 03.11.26 11:45. Control: day 0 = 05.11.26 08:40.</div></div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
  let t="<tr><th>Sample</th><th>Date</th>"+F.cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
@@ -155,9 +155,31 @@ function render(){
  document.getElementById("fdaT").innerHTML=t;
  const f0=F.rows[0],f1=F.rows[F.rows.length-1];const avg=a=>{a=a.filter(v=>v!=null);return a.reduce((x,y)=>x+y,0)/a.length};const f2=v=>v==null?"–":v.toFixed(2);
 
- const trendLeg=()=>depth.map((d,i)=>`<span><i style="background:${DC[i]}"></i>${d}</span>`).join("");
+ const OC=["#5B9BD5","#ED7D31","#A5A5A5","#FFC000","#4472C4","#70AD47","#264478","#9E480E"];
+ const DEP=depth.map(d=>parseFloat(d));
+ const trendLeg=()=>F.rows.map((r,k)=>`<span><i style="background:${OC[k%OC.length]}"></i>${r[0]} - ${r[1]}</span>`).join("");
  document.getElementById("trendLeg").innerHTML=trendLeg();
- chart("trend","FDA activity over time by depth",(el,o)=>line(el,depth.map((d,i)=>({n:d,c:DC[i],dots:1,wd:2,pts:F.rows.map((r,j)=>[j,r[2][i]])})),Object.assign({w:560,h:PH,xmin:-0.3,xmax:F.rows.length-0.7,xcats:F.rows.map(r=>r[1]),xt:"Sampling date",yt:"FDA activity"},o||{})),trendLeg);
+ chart("trend","FDA activity – depth profile",(el,o)=>{
+  const W=o?o.w:560,H=o?o.h:PH,big=!!o,L=big?70:54,R=big?24:16,T=big?58:46,B=big?20:14;
+  const vals=F.rows.flatMap(r=>r[2].slice(0,5)).filter(v=>v!=null);const xr=nice(0,Math.max(...vals),big?10:5);
+  const ymax=Math.ceil(Math.max(...DEP)+0.5),X=v=>L+v/xr.hi*(W-L-R),Y=d=>T+d/ymax*(H-T-B);
+  let g=`<svg viewBox="0 0 ${W} ${H}">`;
+  for(let v=0;v<=xr.hi+1e-9;v+=xr.st)g+=`<line class="gr" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text class="tk" x="${X(v)}" y="${T-8}" text-anchor="middle">${v.toFixed(1)}</text>`;
+  for(let d=0;d<=ymax+1e-9;d+=0.5)g+=`<text class="tk" x="${L-6}" y="${Y(d)+3}" text-anchor="end">${d.toFixed(1)}</text>`;
+  g+=`<line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/><line class="ax" x1="${L}" x2="${W-R}" y1="${T}" y2="${T}"/>`;
+  g+=`<text class="tk" x="${(L+W-R)/2}" y="${big?20:14}" text-anchor="middle">FDA activity (nmol h⁻¹ ml⁻¹)</text><text class="tk" transform="translate(${big?18:12},${(T+H-B)/2}) rotate(-90)" text-anchor="middle">Depth (m)</text>`;
+  F.rows.forEach((r,k)=>{const c=OC[k%OC.length];const pts=DEP.map((d,i)=>[r[2][i],d]).filter(p=>p[0]!=null);
+   g+=`<path d="${pts.map((p,j)=>(j?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join("")}" fill="none" stroke="${c}" stroke-width="${big?3:2.2}"/>`;
+   pts.forEach(p=>g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="${big?6:4.5}" fill="${c}"><title>${r[0]} (${r[1]}), ${p[1]} m: ${p[0].toFixed(4)}</title></circle>`)});
+  g+=`</svg>`;el.innerHTML=g;
+  const sv=el.querySelector("svg");
+  sv.addEventListener("mousemove",e=>{const rc=sv.getBoundingClientRect(),py=(e.clientY-rc.top)/rc.height*H;
+   let bi=0,bd=1e9;DEP.forEach((d,i)=>{const dd=Math.abs(Y(d)-py);if(dd<bd){bd=dd;bi=i}});
+   if(py<T||py>H-B){tip.hidden=true;return}
+   tip.innerHTML=`<b>${depth[bi]}</b><br>`+F.rows.map((r,k)=>r[2][bi]==null?"":`<span style="color:${OC[k%OC.length]}">■</span> ${r[0]}: ${fmt(r[2][bi])}<br>`).join("");
+   tip.hidden=false;tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(e.clientY+12)+"px"});
+  sv.addEventListener("mouseleave",()=>{tip.hidden=true});
+ },trendLeg);
  const PC=F.rows.map((r,k)=>{const t=F.rows.length<2?1:k/(F.rows.length-1);const l=80-t*55;return `hsl(212,58%,${l}%)`});
  const profLeg=()=>F.rows.map((r,k)=>`<span><i style="background:${PC[k]}"></i>${r[0]} – ${r[1]}</span>`).join("");
  document.getElementById("profLeg").innerHTML=profLeg();
