@@ -85,6 +85,10 @@ const tip=document.getElementById("tip");
 const CH={};let order=[];let cur=0;let D=null;
 const XP='<span class="xp" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>';
 
+const T0=Date.UTC(2026,10,3,11,45),CTRL_OFF=(Date.UTC(2026,10,5,8,40)-T0)/864e5;
+function dms(x){return T0+x*864e5}
+function dlab(x){const d=new Date(dms(x));return d.getUTCDate()+"."+(d.getUTCMonth()+1)}
+function dtime(x){const d=new Date(Math.round(dms(x)/6e4)*6e4),p=v=>String(v).padStart(2,"0");return p(d.getUTCDate())+"."+p(d.getUTCMonth()+1)+"."+String(d.getUTCFullYear()).slice(2)+" "+p(d.getUTCHours())+":"+p(d.getUTCMinutes())}
 function nice(lo,hi,n){if(lo===hi){lo-=1;hi+=1}const r=hi-lo,st=Math.pow(10,Math.floor(Math.log10(r/n)));const m=[1,2,2.5,5,10].find(k=>r/(st*k)<=n)*st;return{lo:Math.floor(lo/m)*m,hi:Math.ceil(hi/m)*m,st:m}}
 function fmt(v){return Math.abs(v)>=100?Math.round(v):+v.toFixed(2)}
 function maxDay(s){return Math.max(1,Math.ceil(Math.max(...s.map(r=>r[0]))))}
@@ -94,12 +98,13 @@ function line(el,series,o){
  const W=o.w,H=o.h,big=W>700,L=big?60:44,R=big?20:10,T=big?14:8,B=big?44:34;
  let ys=[],xs=[];series.forEach(s=>s.pts.forEach(p=>{if(p[1]!=null){ys.push(p[1]);xs.push(p[0])}}));
  if(!ys.length){el.innerHTML='<div class="empty-state">No readings yet</div>';return}
- const yr=nice(Math.min(...ys),Math.max(...ys),big?8:5);const xmin=o.xmin,xmax=o.xmax??Math.ceil(Math.max(...xs));
+ const yr=nice(Math.min(...ys),Math.max(...ys),big?8:5);const xmin=o.dates?Math.min(...xs):o.xmin,xmax=o.dates?Math.max(...xs):(o.xmax??Math.ceil(Math.max(...xs)));
  const X=x=>L+(x-xmin)/(xmax-xmin)*(W-L-R),Y=y=>T+(yr.hi-y)/(yr.hi-yr.lo)*(H-T-B);
  let g=`<svg viewBox="0 0 ${W} ${H}">`;
  for(let y=yr.lo;y<=yr.hi+1e-9;y+=yr.st){g+=`<line class="gr" x1="${L}" x2="${W-R}" y1="${Y(y)}" y2="${Y(y)}"/><text class="tk" x="${L-6}" y="${Y(y)+4}" text-anchor="end">${fmt(y)}</text>`}
  const xstep=big&&!o.xcats&&(xmax-xmin)<=8?0.5:1;
  if(o.xcats){o.xcats.forEach((c,i)=>g+=`<text class="tk" x="${X(i)}" y="${H-B+16}" text-anchor="middle">${c}</text>`)}
+ else if(o.dates){const m0=Math.ceil(dms(xmin)/864e5)*864e5;const nd=Math.floor((dms(xmax)-m0)/864e5)+1;const every=!big&&nd>7?2:1;for(let k=0;k<nd;k+=every){const x=(m0+k*864e5-T0)/864e5;if(big)g+=`<line class="gr" x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H-B}"/>`;g+=`<text class="tk" x="${X(x)}" y="${H-B+16}" text-anchor="middle">${dlab(x)}</text>`}}
  else for(let x=xmin;x<=xmax+1e-9;x+=xstep){if(big)g+=`<line class="gr" x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H-B}"/>`;g+=`<text class="tk" x="${X(x)}" y="${H-B+16}" text-anchor="middle">${+x.toFixed(1)}</text>`}
  g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/><line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/>`;
  g+=`<text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">${o.xt}</text><text class="tk" transform="translate(${big?16:11},${(T+H-B)/2}) rotate(-90)" text-anchor="middle">${o.yt}</text>`;
@@ -113,7 +118,7 @@ function line(el,series,o){
   if(px<L||px>W-R){tip.hidden=true;hv.setAttribute("visibility","hidden");return}
   const xv=xmin+(px-L)/(W-L-R)*(xmax-xmin);let html="";
   series.forEach(s=>{let b=null,bd=1e9;s.pts.forEach(p=>{if(p[1]==null)return;const dd=Math.abs(p[0]-xv);if(dd<bd){bd=dd;b=p}});if(b)html+=`<span style="color:${s.c}">■</span> ${s.n?s.n+": ":""}${fmt(b[1])}<br>`});
-  const lab=o.xcats?o.xcats[Math.round(Math.max(0,Math.min(o.xcats.length-1,xv)))]:"Day "+xv.toFixed(2);
+  const lab=o.xcats?o.xcats[Math.round(Math.max(0,Math.min(o.xcats.length-1,xv)))]:o.dates?dtime(xv):"Day "+xv.toFixed(2);
   tip.innerHTML=`<b>${lab}</b><br>`+html;tip.hidden=false;
   const tx=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8);tip.style.left=tx+"px";tip.style.top=(e.clientY+12)+"px";
   hv.setAttribute("x1",X(xv));hv.setAttribute("x2",X(xv));hv.setAttribute("visibility","visible")});
@@ -143,7 +148,7 @@ addEventListener("resize",()=>{if(ovId)drawOv()});
 
 function render(){
  order=[];for(const k in CH)delete CH[k];
- const F=D.fda,depth=F.cols.slice(0,5),S=D.sensors;
+ const F=D.fda,depth=F.cols.slice(0,5),S=Object.assign({},D.sensors,{Control:(D.sensors.Control||[]).map(r=>[r[0]+CTRL_OFF,...r.slice(1)])});
  const PH=Math.max(440,5*F.rows.length*22+60);
  const m=document.getElementById("main");
  m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – all samplings</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
@@ -190,7 +195,7 @@ function render(){
   g+=`<line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/><text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">FDA activity</text></svg>`;el.innerHTML=g},profLeg);
  const xm=Math.max(...names.map(n=>maxDay(S[n])));
  const cmpLeg=()=>names.map(n=>`<span><i style="background:${SC[n]}"></i>${n==="Control"?"Control – irrigated with water":"Sensor "+n}</span>`).join("");
- const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,xmax:xm,yt:P[cur][1]+(cur===3?" (Control in mS/cm)":"")},o||{}));
+ const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,dates:1,xt:"Date",yt:P[cur][1]+(cur===3?" (Control in mS/cm)":"")},o||{}));
  const redrawCmp=()=>{CH.cmp.title="Compare sensors – "+P[cur][0];drawCmp(document.getElementById("cmp"));document.querySelectorAll("#pbtn button").forEach((b,i)=>b.classList.toggle("on",i===cur))};
  document.getElementById("pbtn").innerHTML=P.map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join("");
  document.querySelectorAll("#pbtn button").forEach(b=>b.onclick=()=>{cur=+b.dataset.i;redrawCmp()});
@@ -205,7 +210,7 @@ function render(){
  g.innerHTML=h;
  rows.forEach((p,ri)=>names.forEach((n,ci)=>{const id=`c${ri}_${ci}`;if(!document.getElementById(id))return;
   const yt=(n==="Control"&&ri===3)?"EC (mS/cm)":p[1];
-  chart(id,(n==="Control"?"Control":"Sensor "+n)+" – "+p[0],(el,o)=>line(el,[{c:p[2],pts:S[n].map(r=>[r[0],r[1+ri]])}],Object.assign({xmax:maxDay(S[n]),yt},o||{})))}));
+  chart(id,(n==="Control"?"Control":"Sensor "+n)+" – "+p[0],(el,o)=>line(el,[{c:p[2],pts:S[n].map(r=>[r[0],r[1+ri]])}],Object.assign({dates:1,xt:"Date",yt},o||{})))}));
  if(ovId&&CH[ovId])drawOv();else if(ovId)closeOv();
 }
 
