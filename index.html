@@ -71,7 +71,7 @@ footer{padding-block:16px;color:var(--mute);font-size:12px;border-top:1px solid 
 
 
 <header class="pad"><div class="hrow"><div><h1>Soil Column Experiment – Results</h1><p>FDA activity by depth and continuous sensor monitoring (VWC, temperature, permittivity, EC)</p></div><div class="live" id="live"><i></i><span id="liveTxt">Connecting to data…</span></div></div></header>
-<nav class="pad"><a href="#fda">FDA activity</a><a href="#moist">FDA vs moisture</a><a href="#compare">Compare sensors</a><a href="#grid">All sensor graphs</a></nav>
+<nav class="pad"><a href="#fda">FDA activity</a><a href="#compare">Compare sensors</a><a href="#moist">FDA vs moisture</a><a href="#grid">All sensor graphs</a></nav>
 <main class="pad" id="main"><div class="card empty-state" id="empty">Loading the latest results from Results.xlsx and the CR300 logger…</div></main>
 <div class="tip" id="tip" hidden></div>
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovp"><div class="ovh"><h3 id="ovT"></h3><button id="ovPrev" aria-label="Previous graph">←</button><button id="ovNext" aria-label="Next graph">→</button><button id="ovX">Close</button></div><div class="ovb" id="ovB"></div><div class="leg" id="ovL"></div><div class="ovf">Hover to read values · Esc to close · ← → for other graphs</div></div></div>
@@ -181,8 +181,8 @@ function render(){
  const PH=Math.max(440,5*F.rows.length*22+60);
  const m=document.getElementById("main");
  m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – all samplings</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
-<section id="moist"><h2>FDA vs moisture</h2><div class="card zoom" style="margin-bottom:16px"><div class="ct">FDA activity and soil moisture over time – all depths</div><div id="mAll"></div><div class="leg" id="mAllLeg"></div></div><div class="mgrid" id="mGrid"></div><div class="note">FDA activity (left axis, dots) at each sampling time; soil moisture VWC (right axis, line) from the sensor at the same depth. No moisture sensor at 2 m.</div></section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
+<section id="moist"><h2>FDA vs moisture</h2><div class="mgrid" id="mGrid"></div><div class="note">FDA activity (left axis, dots) at each sampling time; soil moisture VWC (right axis, line) from the sensor at the same depth. No moisture sensor at 2 m.</div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
  let t="<tr><th>Sample</th><th>Date</th>"+F.cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
  F.rows.forEach(r=>{t+=`<tr><td>${r[0]}</td><td>${r[1]}</td>`+r[2].map((v,i)=>`<td>${v==null?"–":v.toFixed(4)}</td>`).join("")+"</tr>"});
@@ -217,10 +217,7 @@ function render(){
  const FT=F.times||F.rows.map(()=>null);const SEN={"0.5 m":"1","1 m":"2","1.5 m":"3","2 m":null,"2.5 m":"5"};
  const fdaS=(i,c)=>({n:"FDA "+depth[i],c,pts:F.rows.map((r,k)=>[FT[k],r[2][i]])});
  const vwcS=(i,c,op)=>SEN[depth[i]]&&S[SEN[depth[i]]]?[{n:"VWC "+depth[i]+" (sensor "+SEN[depth[i]]+")",c,op,pts:S[SEN[depth[i]]].map(r=>[r[0],r[1]])}]:[];
- const mLeg=()=>depth.map((d,i)=>`<span><i style="background:${DC[i]};height:8px;width:8px;border-radius:50%"></i>FDA ${d}</span>`).join("")+depth.map((d,i)=>SEN[d]?`<span><i style="background:${DC[i]};opacity:.55"></i>VWC ${d}</span>`:"").join("");
- document.getElementById("mAllLeg").innerHTML=mLeg();
- chart("mAll","FDA activity and soil moisture over time – all depths",(el,o)=>dual(el,depth.map((d,i)=>fdaS(i,DC[i])),depth.flatMap((d,i)=>vwcS(i,DC[i],.55)),Object.assign({w:1100,h:360},o||{})),mLeg);
- document.getElementById("mGrid").innerHTML=depth.map((d,i)=>`<div class="card zoom"><div class="ct">Depth ${d} – FDA activity${SEN[d]?" and VWC":" (no moisture sensor)"}</div><div id="m${i}"></div><div class="leg"><span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>${SEN[d]?`<span><i style="background:#2F6FB3"></i>VWC (sensor ${SEN[d]})</span>`:""}</div></div>`).join("");
+ document.getElementById("mGrid").innerHTML=depth.map((d,i)=>`<div class="card zoom"><div class="ct">Depth ${d}${SEN[d]?"":" (no moisture sensor)"}</div><div id="m${i}"></div><div class="leg"><span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>${SEN[d]?`<span><i style="background:#2F6FB3"></i>VWC (sensor ${SEN[d]})</span>`:""}</div></div>`).join("");
  depth.forEach((d,i)=>{const lg=()=>`<span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>`+(SEN[d]?`<span><i style="background:#2F6FB3"></i>VWC (sensor ${SEN[d]})</span>`:"");
   chart("m"+i,"Depth "+d+" – FDA activity"+(SEN[d]?" and VWC":" (no moisture sensor)"),(el,o)=>dual(el,[fdaS(i,"#E07B39")],vwcS(i,"#2F6FB3",1),o),lg)});
  const PC=F.rows.map((r,k)=>{const t=F.rows.length<2?1:k/(F.rows.length-1);const l=80-t*55;return `hsl(212,58%,${l}%)`});
