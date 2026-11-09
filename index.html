@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Soil Column Experiment – Results</title>
+<style>
+/* Layout: sticky section nav, FDA summary, comparison chart, then a parameter × sensor grid; any chart opens full screen. */
+:root{--blue:#2F6FB3;--blue-deep:#1e4e8c;--bg:#f4f6f9;--card:#fff;--ink:#1f2937;--mute:#5f6876;--line:#e5e7eb;--label:#dbe5f3;--grid:#eef0f3;--axis:#9ca3af;--zebra:#f8fafc;--shadow:rgba(0,0,0,.08);--scrim:rgba(15,23,42,.55);--ok:#2f7a3f;--ok-bg:#e3f2e6;--font:"Segoe UI",Calibri,Arial,system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11161d;--card:#1a212b;--ink:#e6eaf0;--mute:#9aa4b2;--line:#2b3440;--label:#22324a;--grid:#262f3a;--axis:#5b6676;--zebra:#1e2631;--shadow:rgba(0,0,0,.4);--scrim:rgba(0,0,0,.7);--blue:#5b95d6;--ok:#7fd093;--ok-bg:#1d3324;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11161d;--card:#1a212b;--ink:#e6eaf0;--mute:#9aa4b2;--line:#2b3440;--label:#22324a;--grid:#262f3a;--axis:#5b6676;--zebra:#1e2631;--shadow:rgba(0,0,0,.4);--scrim:rgba(0,0,0,.7);--blue:#5b95d6;--ok:#7fd093;--ok-bg:#1d3324;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink)}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:linear-gradient(90deg,#1e4e8c,#2F6FB3);color:#fff;padding-block:22px}
+.hrow{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;max-width:1700px;margin:auto}
+header h1{margin:0;font-size:24px;text-wrap:balance}
+header p{margin:4px 0 0;opacity:.85;font-size:14px}
+.live{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border-radius:16px;padding:6px 12px;font-size:13px;font-variant-numeric:tabular-nums}
+.live i{width:8px;height:8px;border-radius:50%;background:#9be7a9;box-shadow:0 0 0 3px rgba(155,231,169,.3)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);display:flex;gap:4px;overflow-x:auto}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:#1e4e8c}
+nav a{padding:12px 16px;text-decoration:none;color:var(--mute);font-weight:600;border-bottom:3px solid transparent;white-space:nowrap}
+nav a:hover,nav a:focus-visible{color:var(--blue);border-color:var(--blue);outline:none}
+main{padding-block:24px;max-width:1700px;margin:auto}
+section{margin-bottom:36px}
+h2{font-size:19px;margin:0 0 14px;border-left:4px solid var(--blue);padding-left:10px}
+.card{background:var(--card);border-radius:10px;box-shadow:0 1px 3px var(--shadow);padding:16px;min-width:0}
+.row{display:grid;gap:16px}.r2{grid-template-columns:1fr 1fr}@media(max-width:1000px){.r2{grid-template-columns:1fr}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th{background:var(--blue);color:#fff;padding:8px;font-weight:600}
+td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--line)}
+tr:nth-child(even) td{background:var(--zebra)}td.hi{font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 1px 3px var(--shadow)}
+.kpi b{display:block;font-size:22px;color:var(--blue);font-variant-numeric:tabular-nums}.kpi span{font-size:12px;color:var(--mute)}
+.gwrap{overflow-x:auto}
+.grid{display:grid;grid-template-columns:110px repeat(5,minmax(200px,1fr));gap:10px;align-items:stretch;min-width:1150px}
+.gh{background:var(--blue);color:#fff;font-weight:600;text-align:center;padding:8px;border-radius:6px}
+.gl{background:var(--label);font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:6px;padding:4px}
+.cell{background:var(--card);border-radius:8px;box-shadow:0 1px 2px var(--shadow);padding:6px;min-height:190px}
+.cell.empty{background:transparent;box-shadow:none;color:var(--mute);font-style:italic;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
+.ct{font-size:12px;font-weight:600;text-align:center;color:var(--ink)}
+.zoom{position:relative;cursor:zoom-in;transition:box-shadow .15s,transform .15s}
+.zoom:hover,.zoom:focus-visible{box-shadow:0 4px 14px var(--shadow),0 0 0 2px var(--blue);outline:none}
+.zoom .xp{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--mute);background:var(--card);opacity:.55;transition:opacity .15s}
+.zoom:hover .xp,.zoom:focus-visible .xp{opacity:1;color:var(--blue)}
+svg{width:100%;display:block}
+.ax{stroke:var(--axis);stroke-width:1}.gr{stroke:var(--grid)}.tk{font-size:10px;fill:var(--mute)}
+.tip{position:fixed;pointer-events:none;background:rgba(17,24,39,.92);color:#fff;font-size:12px;padding:5px 8px;border-radius:5px;z-index:60;font-variant-numeric:tabular-nums}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ctrl button{border:1px solid var(--line);background:var(--card);padding:6px 12px;border-radius:16px;cursor:pointer;font-weight:600;color:var(--mute);font:inherit;font-weight:600}
+.ctrl button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px;justify-content:center}
+.leg i{display:inline-block;width:14px;height:3px;margin-right:5px;vertical-align:middle}
+.note{font-size:12px;color:var(--mute);margin-top:8px}
+.empty-state{padding:40px 16px;text-align:center;color:var(--mute)}
+footer{padding-block:16px;color:var(--mute);font-size:12px;border-top:1px solid var(--line);background:var(--card)}
+/* full-screen chart */
+.ov{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.ovp{background:var(--card);border-radius:12px;flex:1;display:flex;flex-direction:column;min-width:0;padding:16px 20px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.ovh{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.ovh h3{margin:0;font-size:18px;flex:1;min-width:0}
+.ovh button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit;font-weight:600}
+.ovh button:hover,.ovh button:focus-visible{border-color:var(--blue);color:var(--blue);outline:none}
+.ovb{flex:1;min-height:0;position:relative}
+.ovb svg{position:absolute;inset:0;height:100%}
+.ov .tk{font-size:13px}
+.ovf{font-size:12px;color:var(--mute);margin-top:6px;text-align:center}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;z-index:70;box-shadow:0 4px 14px var(--shadow)}
+@media (prefers-reduced-motion:reduce){.zoom,.zoom .xp{transition:none}}
+</style>
+</head><body>
+
+
+<header class="pad"><div class="hrow"><div><h1>Soil Column Experiment – Results</h1><p>FDA activity by depth and continuous sensor monitoring (VWC, temperature, permittivity, EC)</p></div><div class="live" id="live"><i></i><span id="liveTxt">Connecting to data…</span></div></div></header>
+<nav class="pad"><a href="#fda">FDA activity</a><a href="#compare">Compare sensors</a><a href="#grid">All sensor graphs</a></nav>
+<main class="pad" id="main"><div class="card empty-state" id="empty">Loading the latest results from Results.xlsx and the CR300 logger…</div></main>
+<footer class="pad" id="foot">Data: Results.xlsx (Results, Sensor Data) and CR300Series_TDT_Data.dat · Updated daily · Click any graph to open it full screen</footer>
+<div class="tip" id="tip" hidden></div>
+<div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovp"><div class="ovh"><h3 id="ovT"></h3><button id="ovPrev" aria-label="Previous graph">←</button><button id="ovNext" aria-label="Next graph">→</button><button id="ovX">Close</button></div><div class="ovb" id="ovB"></div><div class="leg" id="ovL"></div><div class="ovf">Hover to read values · Esc to close · ← → for other graphs</div></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const P=[["VWC","VWC %","#2F6FB3"],["Temperature","Temperature (°C)","#E07B39"],["Permittivity","Permittivity","#7B3FA0"],["EC","EC","#3E9B4F"]];
+const SC={"1":"#2F6FB3","2":"#E07B39","3":"#3E9B4F","5":"#7B3FA0","Control":"#C0392B"};
+const DC=["#9fd08a","#3E9B4F","#2F6FB3","#7B3FA0","#1e3a5f"];
+const names=["1","2","3","5","Control"];
+const tip=document.getElementById("tip");
+const CH={};let order=[];let cur=0;let D=null;
+const XP='<span class="xp" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>';
+
+function nice(lo,hi,n){if(lo===hi){lo-=1;hi+=1}const r=hi-lo,st=Math.pow(10,Math.floor(Math.log10(r/n)));const m=[1,2,2.5,5,10].find(k=>r/(st*k)<=n)*st;return{lo:Math.floor(lo/m)*m,hi:Math.ceil(hi/m)*m,st:m}}
+function fmt(v){return Math.abs(v)>=100?Math.round(v):+v.toFixed(2)}
+function maxDay(s){return Math.max(1,Math.ceil(Math.max(...s.map(r=>r[0]))))}
+
+function line(el,series,o){
+ o=Object.assign({w:340,h:190,xmin:0,xmax:null,xt:"Day",yt:"",xcats:null},o);
+ const W=o.w,H=o.h,big=W>700,L=big?60:44,R=big?20:10,T=big?14:8,B=big?44:34;
+ let ys=[],xs=[];series.forEach(s=>s.pts.forEach(p=>{if(p[1]!=null){ys.push(p[1]);xs.push(p[0])}}));
+ if(!ys.length){el.innerHTML='<div class="empty-state">No readings yet</div>';return}
+ const yr=nice(Math.min(...ys),Math.max(...ys),big?8:5);const xmin=o.xmin,xmax=o.xmax??Math.ceil(Math.max(...xs));
+ const X=x=>L+(x-xmin)/(xmax-xmin)*(W-L-R),Y=y=>T+(yr.hi-y)/(yr.hi-yr.lo)*(H-T-B);
+ let g=`<svg viewBox="0 0 ${W} ${H}">`;
+ for(let y=yr.lo;y<=yr.hi+1e-9;y+=yr.st){g+=`<line class="gr" x1="${L}" x2="${W-R}" y1="${Y(y)}" y2="${Y(y)}"/><text class="tk" x="${L-6}" y="${Y(y)+4}" text-anchor="end">${fmt(y)}</text>`}
+ const xstep=big&&!o.xcats&&(xmax-xmin)<=8?0.5:1;
+ if(o.xcats){o.xcats.forEach((c,i)=>g+=`<text class="tk" x="${X(i)}" y="${H-B+16}" text-anchor="middle">${c}</text>`)}
+ else for(let x=xmin;x<=xmax+1e-9;x+=xstep){if(big)g+=`<line class="gr" x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H-B}"/>`;g+=`<text class="tk" x="${X(x)}" y="${H-B+16}" text-anchor="middle">${+x.toFixed(1)}</text>`}
+ g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/><line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/>`;
+ g+=`<text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">${o.xt}</text><text class="tk" transform="translate(${big?16:11},${(T+H-B)/2}) rotate(-90)" text-anchor="middle">${o.yt}</text>`;
+ series.forEach(s=>{let d="";s.pts.forEach(p=>{if(p[1]==null||p[0]<xmin||p[0]>xmax)return;d+=(d?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)});
+  g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="${(s.wd||1.6)*(big?1.4:1)}" vector-effect="non-scaling-stroke"/>`;
+  if(s.dots)s.pts.forEach(p=>g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="${big?5:3.5}" fill="${s.c}"/>`)});
+ g+=`<line class="hv" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="var(--axis)" stroke-dasharray="3,3" visibility="hidden"/></svg>`;
+ el.innerHTML=g;
+ const sv=el.querySelector("svg"),hv=sv.querySelector(".hv");
+ sv.addEventListener("mousemove",e=>{const r=sv.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W;
+  if(px<L||px>W-R){tip.hidden=true;hv.setAttribute("visibility","hidden");return}
+  const xv=xmin+(px-L)/(W-L-R)*(xmax-xmin);let html="";
+  series.forEach(s=>{let b=null,bd=1e9;s.pts.forEach(p=>{if(p[1]==null)return;const dd=Math.abs(p[0]-xv);if(dd<bd){bd=dd;b=p}});if(b)html+=`<span style="color:${s.c}">■</span> ${s.n?s.n+": ":""}${fmt(b[1])}<br>`});
+  const lab=o.xcats?o.xcats[Math.round(Math.max(0,Math.min(o.xcats.length-1,xv)))]:"Day "+xv.toFixed(2);
+  tip.innerHTML=`<b>${lab}</b><br>`+html;tip.hidden=false;
+  const tx=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8);tip.style.left=tx+"px";tip.style.top=(e.clientY+12)+"px";
+  hv.setAttribute("x1",X(xv));hv.setAttribute("x2",X(xv));hv.setAttribute("visibility","visible")});
+ sv.addEventListener("mouseleave",()=>{tip.hidden=true;hv.setAttribute("visibility","hidden")});
+}
+
+/* register a chart: draw small, make its card open full screen */
+function chart(id,title,draw,legend){
+ CH[id]={title,draw,legend};order.push(id);
+ const el=document.getElementById(id);draw(el,false);
+ const box=el.closest(".zoom");
+ if(box&&!box.dataset.z){box.dataset.z=id;box.tabIndex=0;box.setAttribute("role","button");box.setAttribute("aria-label","Open "+title+" full screen");box.insertAdjacentHTML("beforeend",XP)}
+}
+document.addEventListener("click",e=>{const b=e.target.closest(".zoom");if(!b||e.target.closest("button"))return;openOv(b.dataset.z)});
+document.addEventListener("keydown",e=>{
+ if(!document.getElementById("ov").hidden){if(e.key==="Escape")closeOv();if(e.key==="ArrowRight")step(1);if(e.key==="ArrowLeft")step(-1);return}
+ const b=e.target.closest&&e.target.closest(".zoom");if(b&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openOv(b.dataset.z)}});
+let ovId=null,lastFocus=null;
+function drawOv(){const c=CH[ovId];if(!c)return;const b=document.getElementById("ovB");document.getElementById("ovT").textContent=c.title;
+ c.draw(b,{w:Math.max(320,b.clientWidth),h:Math.max(220,b.clientHeight)});document.getElementById("ovL").innerHTML=c.legend?c.legend():""}
+function openOv(id){if(!CH[id])return;lastFocus=document.activeElement;ovId=id;const ov=document.getElementById("ov");ov.hidden=false;document.body.style.overflow="hidden";requestAnimationFrame(drawOv);document.getElementById("ovX").focus()}
+function closeOv(){document.getElementById("ov").hidden=true;tip.hidden=true;document.body.style.overflow="";ovId=null;lastFocus&&lastFocus.focus&&lastFocus.focus()}
+function step(d){const i=order.indexOf(ovId);ovId=order[(i+d+order.length)%order.length];drawOv()}
+document.getElementById("ovX").onclick=closeOv;document.getElementById("ovPrev").onclick=()=>step(-1);document.getElementById("ovNext").onclick=()=>step(1);
+document.getElementById("ov").addEventListener("click",e=>{if(e.target.id==="ov")closeOv()});
+addEventListener("resize",()=>{if(ovId)drawOv()});
+
+function render(){
+ order=[];for(const k in CH)delete CH[k];
+ const F=D.fda,depth=F.cols.slice(0,5),S=D.sensors;
+ const m=document.getElementById("main");
+ m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="kpis" id="kpis"></div><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div><div class="note">Control = bucket, water only. Bold = highest value in each sampling (excluding drainage).</div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity over time by depth</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – first vs latest sampling</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
+<section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div><div class="note">Sensors 1, 2, 3, 5: day 0 = 03.11.26 11:45. Control: day 0 = 05.11.26 08:40.</div></div></section>
+<section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
+ let t="<tr><th>Sample</th><th>Date</th>"+F.cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
+ F.rows.forEach(r=>{const mx=Math.max(...r[2].slice(0,5).filter(v=>v!=null));t+=`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td>`+r[2].map((v,i)=>`<td class="${i<5&&v===mx?"hi":""}">${v==null?"–":v.toFixed(4)}</td>`).join("")+"</tr>"});
+ document.getElementById("fdaT").innerHTML=t;
+ const f0=F.rows[0],f1=F.rows[F.rows.length-1];const avg=a=>{a=a.filter(v=>v!=null);return a.reduce((x,y)=>x+y,0)/a.length};const f2=v=>v==null?"–":v.toFixed(2);
+ if(f0)document.getElementById("kpis").innerHTML=[[F.rows.length,"Samplings ("+f0[1]+" – "+f1[1]+")"],[f2(f1[2][5]),"Drainage FDA, latest"],[avg(f1[2].slice(0,5)).toFixed(2),"Mean column FDA, latest"],[f2(f1[2][6]),"Control FDA, latest"],[D.latestReading||"–","Latest sensor reading"]].map(k=>`<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join("");
+ const trendLeg=()=>depth.map((d,i)=>`<span><i style="background:${DC[i]}"></i>${d}</span>`).join("");
+ document.getElementById("trendLeg").innerHTML=trendLeg();
+ chart("trend","FDA activity over time by depth",(el,o)=>line(el,depth.map((d,i)=>({n:d,c:DC[i],dots:1,wd:2,pts:F.rows.map((r,j)=>[j,r[2][i]])})),Object.assign({w:560,h:280,xmin:-0.3,xmax:F.rows.length-0.7,xcats:F.rows.map(r=>r[1]),xt:"Sampling date",yt:"FDA activity"},o||{})),trendLeg);
+ const profLeg=()=>`<span><i style="background:#a9c4e6"></i>First ${f0[0]} – ${f0[1]}</span><span><i style="background:#1e4e8c"></i>Latest ${f1[0]} – ${f1[1]}</span>`;
+ document.getElementById("profLeg").innerHTML=profLeg();
+ chart("prof","Depth profile – first vs latest sampling",(el,o)=>{const W=o?o.w:560,H=o?o.h:280,L=o?80:60,R=24,T=10,B=o?44:34;const vals=[...f0[2].slice(0,5),...f1[2].slice(0,5)].filter(v=>v!=null);const mx=nice(0,Math.max(...vals),5);
+  const X=v=>L+v/mx.hi*(W-L-R),bh=(H-T-B)/5;let g=`<svg viewBox="0 0 ${W} ${H}">`;
+  for(let v=0;v<=mx.hi+1e-9;v+=mx.st)g+=`<line class="gr" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text class="tk" x="${X(v)}" y="${H-B+16}" text-anchor="middle">${fmt(v)}</text>`;
+  depth.forEach((d,i)=>{const y=T+i*bh;g+=`<text class="tk" x="${L-6}" y="${y+bh/2+3}" text-anchor="end">${d}</text>`;
+   [[f0,"#a9c4e6"],[f1,"#1e4e8c"]].forEach(([r,c],k)=>{const v=r[2][i]||0;g+=`<rect x="${L}" y="${y+bh*0.15+k*bh*0.35}" width="${X(v)-L}" height="${bh*0.33}" fill="${c}"><title>${r[0]} ${d}: ${v.toFixed(4)}</title></rect><text class="tk" x="${X(v)+4}" y="${y+bh*0.15+k*bh*0.35+bh*0.24}">${v.toFixed(2)}</text>`})});
+  g+=`<text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">FDA activity</text></svg>`;el.innerHTML=g},profLeg);
+ const xm=Math.max(...names.map(n=>maxDay(S[n])));
+ const cmpLeg=()=>names.map(n=>`<span><i style="background:${SC[n]}"></i>${n==="Control"?"Control – irrigated with water":"Sensor "+n}</span>`).join("");
+ const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,xmax:xm,yt:P[cur][1]+(cur===3?" (Control in µS/cm – see grid)":"")},o||{}));
+ const redrawCmp=()=>{CH.cmp.title="Compare sensors – "+P[cur][0];drawCmp(document.getElementById("cmp"));document.querySelectorAll("#pbtn button").forEach((b,i)=>b.classList.toggle("on",i===cur))};
+ document.getElementById("pbtn").innerHTML=P.map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join("");
+ document.querySelectorAll("#pbtn button").forEach(b=>b.onclick=()=>{cur=+b.dataset.i;redrawCmp()});
+ document.getElementById("cmpLeg").innerHTML=cmpLeg();
+ chart("cmp","Compare sensors – "+P[cur][0],drawCmp,cmpLeg);redrawCmp();
+ const g=document.getElementById("g");let h=`<div></div>`+names.map(n=>`<div class="gh">${n==="Control"?"Control – irrigated with water":"Sensor "+n}</div>`).join("");
+ const rows=P.concat([["Pore water EC","Pore water EC (µS/cm)","#1e4e8c"]]);
+ rows.forEach((p,ri)=>{h+=`<div class="gl">${p[0]}</div>`;names.forEach((n,ci)=>{const id=`c${ri}_${ci}`;
+  if(ri===4&&n!=="Control")h+=`<div class="cell empty">${ci===0?"Pore water EC is measured only by the Control (TDR) sensor":""}</div>`;
+  else h+=`<div class="cell zoom"><div class="ct">${n} – ${p[0]}</div><div id="${id}"></div></div>`})});
+ g.innerHTML=h;
+ rows.forEach((p,ri)=>names.forEach((n,ci)=>{const id=`c${ri}_${ci}`;if(!document.getElementById(id))return;
+  const yt=(n==="Control"&&ri===3)?"EC (µS/cm)":p[1];
+  chart(id,(n==="Control"?"Control":"Sensor "+n)+" – "+p[0],(el,o)=>line(el,[{c:p[2],pts:S[n].map(r=>[r[0],r[1+ri]])}],Object.assign({xmax:maxDay(S[n]),yt},o||{})))}));
+ if(ovId&&CH[ovId])drawOv();else if(ovId)closeOv();
+}
+
+function setLive(txt){document.getElementById("liveTxt").textContent=txt}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,6000)}
+
+async function load(first){
+ try{
+  const r=await fetch("data.json?t="+Date.now(),{cache:"no-store"});
+  if(!r.ok)throw new Error(r.status);
+  const b=await r.json();
+  const changed=fp!==null&&fp!==b.fingerprint;
+  if(fp===b.fingerprint)return;
+  fp=b.fingerprint;D={fda:b.fda,sensors:b.sensors,latestReading:b.latestReading};
+  setLive("Latest reading "+(b.latestReading||"–"));render();
+  if(changed)toast("New data loaded – graphs updated to "+b.latestReading);
+ }catch(e){if(first){setLive("Data unavailable");document.getElementById("empty").textContent="The results data could not be loaded. Check your connection and reload the page."}}
+}
+let fp=null;load(true);setInterval(load,10*60*1000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
+</script>
+
+</body></html>
