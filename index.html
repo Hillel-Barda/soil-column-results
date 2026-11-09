@@ -34,6 +34,7 @@ tr:nth-child(even) td{background:var(--zebra)}td.hi{font-weight:700}
 .grid{display:grid;grid-template-columns:110px repeat(5,minmax(200px,1fr));gap:10px;align-items:stretch;min-width:1150px}
 .gh{background:var(--blue);color:#fff;font-weight:600;text-align:center;padding:8px;border-radius:6px;display:flex;flex-direction:column;justify-content:center}.gd{display:block;font-weight:400;font-size:13px;opacity:.9}
 .gl{background:var(--label);font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:6px;padding:4px}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
 .cell{background:var(--card);border-radius:8px;box-shadow:0 1px 2px var(--shadow);padding:6px;min-height:190px}
 .cell.empty{background:transparent;box-shadow:none;color:var(--mute);font-style:italic;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
 .ct{font-size:12px;font-weight:600;text-align:center;color:var(--ink)}
@@ -70,7 +71,7 @@ footer{padding-block:16px;color:var(--mute);font-size:12px;border-top:1px solid 
 
 
 <header class="pad"><div class="hrow"><div><h1>Soil Column Experiment – Results</h1><p>FDA activity by depth and continuous sensor monitoring (VWC, temperature, permittivity, EC)</p></div><div class="live" id="live"><i></i><span id="liveTxt">Connecting to data…</span></div></div></header>
-<nav class="pad"><a href="#fda">FDA activity</a><a href="#compare">Compare sensors</a><a href="#grid">All sensor graphs</a></nav>
+<nav class="pad"><a href="#fda">FDA activity</a><a href="#moist">FDA vs moisture</a><a href="#compare">Compare sensors</a><a href="#grid">All sensor graphs</a></nav>
 <main class="pad" id="main"><div class="card empty-state" id="empty">Loading the latest results from Results.xlsx and the CR300 logger…</div></main>
 <div class="tip" id="tip" hidden></div>
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovp"><div class="ovh"><h3 id="ovT"></h3><button id="ovPrev" aria-label="Previous graph">←</button><button id="ovNext" aria-label="Next graph">→</button><button id="ovX">Close</button></div><div class="ovb" id="ovB"></div><div class="leg" id="ovL"></div><div class="ovf">Hover to read values · Esc to close · ← → for other graphs</div></div></div>
@@ -125,6 +126,34 @@ function line(el,series,o){
  sv.addEventListener("mouseleave",()=>{tip.hidden=true;hv.setAttribute("visibility","hidden")});
 }
 
+function dual(el,fda,vwc,o){
+ o=Object.assign({w:520,h:300,fmax:null,vmax:45},o||{});
+ const W=o.w,H=o.h,big=W>700,L=big?62:46,R=big?62:46,T=big?16:10,B=big?46:36;
+ const xs=[...fda.flatMap(s=>s.pts.map(p=>p[0])),...vwc.flatMap(s=>s.pts.map(p=>p[0]))];
+ if(!xs.length){el.innerHTML='<div class="empty-state">No data yet</div>';return}
+ const xmin=0,xmax=Math.max(...xs);
+ const fv=fda.flatMap(s=>s.pts.map(p=>p[1])).filter(v=>v!=null),fr=nice(0,o.fmax??Math.max(2,...fv),5);
+ const vr={lo:0,hi:Math.max(o.vmax,Math.ceil(Math.max(0,...vwc.flatMap(s=>s.pts.map(p=>p[1]??0)))/5)*5)};
+ const X=x=>L+(x-xmin)/(xmax-xmin)*(W-L-R),YF=y=>T+(fr.hi-y)/(fr.hi-fr.lo)*(H-T-B),YV=y=>T+(vr.hi-y)/(vr.hi-vr.lo)*(H-T-B);
+ let g=`<svg viewBox="0 0 ${W} ${H}">`;
+ for(let y=fr.lo;y<=fr.hi+1e-9;y+=fr.st)g+=`<line class="gr" x1="${L}" x2="${W-R}" y1="${YF(y)}" y2="${YF(y)}"/><text class="tk" x="${L-6}" y="${YF(y)+4}" text-anchor="end">${fmt(y)}</text>`;
+ const vst=vr.hi>30?(big?5:15):5;for(let y=0;y<=vr.hi+1e-9;y+=vst)g+=`<text class="tk" x="${W-R+6}" y="${YV(y)+4}">${y}</text>`;
+ const m0=Math.ceil(dms(xmin)/864e5)*864e5,nd=Math.floor((dms(xmax)-m0)/864e5)+1;
+ for(let k=0;k<nd;k++){const x=(m0+k*864e5-T0)/864e5;if(big)g+=`<line class="gr" x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H-B}"/>`;g+=`<text class="tk" x="${X(x)}" y="${H-B+16}" text-anchor="middle">${dlab(x)}</text>`}
+ g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/><line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-B}"/><line class="ax" x1="${W-R}" x2="${W-R}" y1="${T}" y2="${H-B}"/>`;
+ g+=`<text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">Date</text><text class="tk" transform="translate(${big?16:11},${(T+H-B)/2}) rotate(-90)" text-anchor="middle">FDA activity (nmol h⁻¹ ml⁻¹)</text><text class="tk" transform="translate(${W-(big?12:8)},${(T+H-B)/2}) rotate(90)" text-anchor="middle">VWC %</text>`;
+ vwc.forEach(s=>{let d="";s.pts.forEach(p=>{if(p[1]==null)return;d+=(d?"L":"M")+X(p[0]).toFixed(1)+","+YV(p[1]).toFixed(1)});g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="${big?2:1.4}" stroke-opacity="${s.op??1}"/>`});
+ fda.forEach(s=>{const pts=s.pts.filter(p=>p[1]!=null&&p[0]!=null);g+=`<path d="${pts.map((p,j)=>(j?"L":"M")+X(p[0]).toFixed(1)+","+YF(p[1]).toFixed(1)).join("")}" fill="none" stroke="${s.c}" stroke-width="${big?2:1.4}" stroke-dasharray="4,3"/>`;pts.forEach(p=>g+=`<circle cx="${X(p[0])}" cy="${YF(p[1])}" r="${big?6:4.5}" fill="${s.c}" stroke="var(--card)" stroke-width="1.5"/>`)});
+ g+=`<line class="hv" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="var(--axis)" stroke-dasharray="3,3" visibility="hidden"/></svg>`;el.innerHTML=g;
+ const sv=el.querySelector("svg"),hv=sv.querySelector(".hv");
+ sv.addEventListener("mousemove",e=>{const r=sv.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W;if(px<L||px>W-R){tip.hidden=true;hv.setAttribute("visibility","hidden");return}
+  const xv=xmin+(px-L)/(W-L-R)*(xmax-xmin);let h="";
+  fda.forEach(s=>{let b=null,bd=1e9;s.pts.forEach(p=>{if(p[1]==null)return;const dd=Math.abs(p[0]-xv);if(dd<bd){bd=dd;b=p}});if(b&&Math.abs(X(b[0])-X(xv))<12)h+=`<span style="color:${s.c}">●</span> ${s.n}: ${fmt(b[1])}<br>`});
+  vwc.forEach(s=>{let b=null,bd=1e9;s.pts.forEach(p=>{if(p[1]==null)return;const dd=Math.abs(p[0]-xv);if(dd<bd){bd=dd;b=p}});if(b)h+=`<span style="color:${s.c}">■</span> ${s.n}: ${fmt(b[1])}<br>`});
+  tip.innerHTML=`<b>${dtime(xv)}</b><br>`+h;tip.hidden=false;tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(e.clientY+12)+"px";hv.setAttribute("x1",X(xv));hv.setAttribute("x2",X(xv));hv.setAttribute("visibility","visible")});
+ sv.addEventListener("mouseleave",()=>{tip.hidden=true;hv.setAttribute("visibility","hidden")});
+}
+
 /* register a chart: draw small, make its card open full screen */
 function chart(id,title,draw,legend){
  CH[id]={title,draw,legend};order.push(id);
@@ -152,6 +181,7 @@ function render(){
  const PH=Math.max(440,5*F.rows.length*22+60);
  const m=document.getElementById("main");
  m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card zoom"><div class="ct">Depth profile – all samplings</div><div id="prof"></div><div class="leg" id="profLeg"></div></div></div></section>
+<section id="moist"><h2>FDA vs moisture</h2><div class="card zoom" style="margin-bottom:16px"><div class="ct">FDA activity and soil moisture over time – all depths</div><div id="mAll"></div><div class="leg" id="mAllLeg"></div></div><div class="mgrid" id="mGrid"></div><div class="note">FDA activity (left axis, dots) at each sampling time; soil moisture VWC (right axis, line) from the sensor at the same depth. No moisture sensor at 2 m.</div></section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
  let t="<tr><th>Sample</th><th>Date</th>"+F.cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
@@ -184,6 +214,15 @@ function render(){
    tip.hidden=false;tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(e.clientY+12)+"px"});
   sv.addEventListener("mouseleave",()=>{tip.hidden=true});
  },trendLeg);
+ const FT=F.times||F.rows.map(()=>null);const SEN={"0.5 m":"1","1 m":"2","1.5 m":"3","2 m":null,"2.5 m":"5"};
+ const fdaS=(i,c)=>({n:"FDA "+depth[i],c,pts:F.rows.map((r,k)=>[FT[k],r[2][i]])});
+ const vwcS=(i,c,op)=>SEN[depth[i]]&&S[SEN[depth[i]]]?[{n:"VWC "+depth[i]+" (sensor "+SEN[depth[i]]+")",c,op,pts:S[SEN[depth[i]]].map(r=>[r[0],r[1]])}]:[];
+ const mLeg=()=>depth.map((d,i)=>`<span><i style="background:${DC[i]};height:8px;width:8px;border-radius:50%"></i>FDA ${d}</span>`).join("")+depth.map((d,i)=>SEN[d]?`<span><i style="background:${DC[i]};opacity:.55"></i>VWC ${d}</span>`:"").join("");
+ document.getElementById("mAllLeg").innerHTML=mLeg();
+ chart("mAll","FDA activity and soil moisture over time – all depths",(el,o)=>dual(el,depth.map((d,i)=>fdaS(i,DC[i])),depth.flatMap((d,i)=>vwcS(i,DC[i],.55)),Object.assign({w:1100,h:360},o||{})),mLeg);
+ document.getElementById("mGrid").innerHTML=depth.map((d,i)=>`<div class="card zoom"><div class="ct">Depth ${d} – FDA activity${SEN[d]?" and VWC":" (no moisture sensor)"}</div><div id="m${i}"></div><div class="leg"><span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>${SEN[d]?`<span><i style="background:#2F6FB3"></i>VWC (sensor ${SEN[d]})</span>`:""}</div></div>`).join("");
+ depth.forEach((d,i)=>{const lg=()=>`<span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>`+(SEN[d]?`<span><i style="background:#2F6FB3"></i>VWC (sensor ${SEN[d]})</span>`:"");
+  chart("m"+i,"Depth "+d+" – FDA activity"+(SEN[d]?" and VWC":" (no moisture sensor)"),(el,o)=>dual(el,[fdaS(i,"#E07B39")],vwcS(i,"#2F6FB3",1),o),lg)});
  const PC=F.rows.map((r,k)=>{const t=F.rows.length<2?1:k/(F.rows.length-1);const l=80-t*55;return `hsl(212,58%,${l}%)`});
  const profLeg=()=>F.rows.map((r,k)=>`<span><i style="background:${PC[k]}"></i>${r[0]} – ${r[1]}</span>`).join("");
  document.getElementById("profLeg").innerHTML=profLeg();
