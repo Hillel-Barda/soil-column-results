@@ -193,13 +193,13 @@ function render(){
 
  const DEP=depth.map(d=>parseFloat(d));
  const n=F.rows.length,last=F.rows[n-1],prev=n>1?F.rows[n-2]:null;
- const profLeg=()=>`<span><i style="background:#1e4e8c;height:4px"></i>Latest: ${last[0]} – ${last[1]}</span>`+(prev?`<span><i style="background:#E07B39"></i>Previous: ${prev[0]} – ${prev[1]}</span>`:"")+(n>2?`<span><i style="background:#b8c0cc"></i>Earlier samplings</span>`:"")+(prev?`<span style="color:#1f8a4c;font-weight:700">▲ rise</span><span style="color:#c0392b;font-weight:700">▼ drop</span>`:"");
+ const profLeg=()=>`<span><i style="background:#1e4e8c;height:4px"></i>Latest: ${last[0]} – ${last[1]}</span>`+(prev?`<span><i style="background:#E07B39"></i>Previous: ${prev[0]} – ${prev[1]}</span>`:"")+(n>2?`<span><i style="background:#b8c0cc"></i>Earlier samplings</span>`:"");
  document.getElementById("trendLeg").innerHTML=profLeg();
  chart("trend","FDA activity – depth profile (latest vs previous)",(el,o)=>{
   const W=o?o.w:560,H=o?o.h:PH,big=!!o,Lm=big?70:54,R=big?30:22,T=big?58:46,B=big?20:14;
   const vals=F.rows.flatMap(r=>r[2].slice(0,5)).filter(v=>v!=null);const xr=nice(0,Math.max(...vals),big?10:5);
   const ymax=Math.ceil(Math.max(...DEP)+0.5),X=v=>Lm+v/xr.hi*(W-Lm-R),Y=dd=>T+dd/ymax*(H-T-B);
-  let g=`<svg viewBox="0 0 ${W} ${H}"><defs><marker id="ahU" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="${big?7:6}" markerHeight="${big?7:6}" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#1f8a4c"/></marker><marker id="ahD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="${big?7:6}" markerHeight="${big?7:6}" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#c0392b"/></marker></defs>`;
+  let g=`<svg viewBox="0 0 ${W} ${H}">`;
   for(let v=0;v<=xr.hi+1e-9;v+=xr.st)g+=`<line class="gr" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text class="tk" x="${X(v)}" y="${T-8}" text-anchor="middle">${v.toFixed(1)}</text>`;
   for(let dd=0;dd<=ymax+1e-9;dd+=0.5)g+=`<text class="tk" x="${Lm-6}" y="${Y(dd)+3}" text-anchor="end">${dd.toFixed(1)}</text>`;
   g+=`<line class="ax" x1="${Lm}" x2="${Lm}" y1="${T}" y2="${H-B}"/><line class="ax" x1="${Lm}" x2="${W-R}" y1="${T}" y2="${T}"/>`;
@@ -210,12 +210,7 @@ function render(){
    DEP.forEach((dd,i)=>{const v=prev[2][i];if(v!=null)g+=`<circle class="tp" data-t="${prev[0]} (${prev[1]}), ${dd} m: ${fmt(v)}" cx="${X(v)}" cy="${Y(dd)}" r="${big?5.5:4.5}" fill="#fff" stroke="#E07B39" stroke-width="2"/>`})}
   g+=`<path d="${path(last)}" fill="none" stroke="#1e4e8c" stroke-width="${big?3.2:2.6}"/>`;
   const rr=big?6:5;
-  if(prev)DEP.forEach((dd,i)=>{const a=prev[2][i],b=last[2][i];if(a==null||b==null||a===0)return;const p=(b-a)/a*100,up=b>=a,c=up?"#1f8a4c":"#c0392b";
-   const x1=X(a),x2=X(b),y=Y(dd),dir=up?1:-1,len=Math.abs(x2-x1);
-   if(len>2*rr+14)g+=`<line x1="${x1+dir*(rr+2)}" y1="${y}" x2="${x2-dir*(rr+3)}" y2="${y}" stroke="${c}" stroke-width="${big?3:2.4}" marker-end="url(#${up?"ahU":"ahD"})"/>`;
-   const lx=len>60?(x1+x2)/2:Math.max(x1,x2)+rr+(big?26:20);
-   g+=`<text x="${lx}" y="${y-(big?10:8)}" text-anchor="middle" font-size="${big?13:11}" font-weight="700" fill="${c}" stroke="#fff" stroke-width="3" paint-order="stroke">${up?"▲":"▼"} ${p>=0?"+":""}${p.toFixed(0)}%</text>`});
-  DEP.forEach((dd,i)=>{const v=last[2][i];if(v!=null)g+=`<circle class="tp" data-t="${last[0]} (${last[1]}), ${dd} m: ${fmt(v)}${prev&&prev[2][i]?` (${((v-prev[2][i])/prev[2][i]*100).toFixed(0)}% vs ${prev[0]})`:""}" cx="${X(v)}" cy="${Y(dd)}" r="${rr+0.5}" fill="#1e4e8c"/>`});
+  DEP.forEach((dd,i)=>{const v=last[2][i];if(v!=null)g+=`<circle class="tp" data-t="${last[0]} (${last[1]}), ${dd} m: ${fmt(v)}" cx="${X(v)}" cy="${Y(dd)}" r="${rr+0.5}" fill="#1e4e8c"/>`});
   g+=`</svg>`;el.innerHTML=g;
   el.querySelectorAll(".tp").forEach(c=>{c.addEventListener("mousemove",e=>{tip.innerHTML=c.dataset.t;tip.hidden=false;tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(e.clientY+12)+"px"});c.addEventListener("mouseleave",()=>tip.hidden=true)});
  },profLeg);
