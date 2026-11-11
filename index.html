@@ -36,7 +36,7 @@ tr:nth-child(even) td{background:var(--zebra)}td.hi{font-weight:700}
 .gl{background:var(--label);font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:6px;padding:4px}
 .mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 @media(max-width:900px){.mgrid{grid-template-columns:1fr}}
-.smg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:6px}.smg .sm1{border-radius:8px;padding:4px}.smg .sm1:last-child{grid-column:1/-1;max-width:50%;justify-self:center;width:100%}
+.smg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:6px}.smg .sm1{border-radius:8px;padding:4px}
 .cell{background:var(--card);border-radius:8px;box-shadow:0 1px 2px var(--shadow);padding:6px;min-height:190px}
 .cell.empty{background:transparent;box-shadow:none;color:var(--mute);font-style:italic;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
 .ct{font-size:12px;font-weight:600;text-align:center;color:var(--ink)}
@@ -182,7 +182,7 @@ function render(){
  const F=D.fda,depth=F.cols.slice(0,5),S=Object.assign({},D.sensors,{Control:(D.sensors.Control||[]).map(r=>[r[0]+CTRL_OFF,...r.slice(1)])});
  const PH=460;
  const m=document.getElementById("main");
- m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Same scale on every graph · latest value labelled · click a graph to enlarge</div></div></div></section>
+ m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
 <section id="moist"><h2>FDA vs VWC</h2><div class="mgrid" id="mGrid"></div><div class="note">FDA activity (left axis, dots) at each sampling time; VWC (right axis, line) from the sensor at the same depth. No VWC sensor at 2 m. Control = bucket irrigated with water only.</div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
@@ -221,21 +221,22 @@ function render(){
  MP.forEach((p,k)=>chart("m"+k,p.t+" – FDA vs VWC"+(p.sen?"":" (no VWC sensor)"),(el,o)=>dual(el,[{n:"FDA activity",c:"#E07B39",pts:F.rows.map((r,q)=>[FT[q],r[2][p.col]])}],p.sen&&S[p.sen]?[{n:"VWC ("+p.sl+")",c:"#2F6FB3",pts:S[p.sen].map(r=>[r[0],r[1]])}]:[],o),()=>lgOf(p)));
  const FT0=F.times||F.rows.map(()=>null),TM=FT0.map((t,k)=>t??k);
  const fdaMax=nice(0,Math.max(...F.rows.flatMap(r=>r[2].slice(0,5)).filter(v=>v!=null)),4).hi;
- document.getElementById("prof").innerHTML=depth.map((d,i)=>`<div class="sm1 zoom"><div class="ct">${d}</div><div id="sm${i}"></div></div>`).join("");
- depth.forEach((d,i)=>chart("sm"+i,"FDA activity over time – "+d,(el,o)=>{
+ const SMP=depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false})).concat([{t:"Drainage",col:5,c:"#8a5a2b",own:true}]);
+ document.getElementById("prof").innerHTML=SMP.map((p,k)=>`<div class="sm1 zoom"><div class="ct">${p.t}${p.own?' <span style="font-weight:400;color:var(--mute)">(own scale)</span>':""}</div><div id="sm${k}"></div></div>`).join("");
+ SMP.forEach((sp,k)=>chart("sm"+k,"FDA activity over time – "+sp.t,(el,o)=>{const i=sp.col,DCi=sp.c,yMax=sp.own?nice(0,Math.max(...F.rows.map(r=>r[2][i]).filter(v=>v!=null)),4).hi:fdaMax;
   const W=o?o.w:300,H=o?o.h:150,big=!!o,Lm=big?60:30,R=big?40:30,T=big?20:14,B=big?44:22;
   const pts=F.rows.map((r,k)=>[TM[k],r[2][i],r]).filter(p=>p[1]!=null);if(!pts.length){el.innerHTML="";return}
   const x0=Math.min(...pts.map(p=>p[0])),x1=Math.max(...pts.map(p=>p[0])),pad=Math.max(0.3,(x1-x0)*0.04);
-  const X=x=>Lm+(x-(x0-pad))/((x1+pad)-(x0-pad))*(W-Lm-R),Y=v=>T+(1-v/fdaMax)*(H-T-B),st=nice(0,fdaMax,big?8:4).st;
+  const X=x=>Lm+(x-(x0-pad))/((x1+pad)-(x0-pad))*(W-Lm-R),Y=v=>T+(1-v/yMax)*(H-T-B),st=nice(0,yMax,big?8:4).st;
   let g=`<svg viewBox="0 0 ${W} ${H}">`;
-  for(let v=0;v<=fdaMax+1e-9;v+=st)g+=`<line class="gr" x1="${Lm}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tk" x="${Lm-4}" y="${Y(v)+3}" text-anchor="end">${+v.toFixed(2)}</text>`;
+  for(let v=0;v<=yMax+1e-9;v+=st)g+=`<line class="gr" x1="${Lm}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tk" x="${Lm-4}" y="${Y(v)+3}" text-anchor="end">${+v.toFixed(2)}</text>`;
   const m0=Math.ceil(dms(x0-pad)/864e5)*864e5,nd=Math.floor((dms(x1+pad)-m0)/864e5)+1,every=Math.max(1,Math.ceil(nd/(big?14:4)));
   for(let k=0;k<nd;k+=every){const x=(m0+k*864e5-T0)/864e5;g+=`<text class="tk" x="${X(x)}" y="${H-B+14}" text-anchor="middle">${dlab(x)}</text>`}
   g+=`<line class="ax" x1="${Lm}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/>`;
   if(big)g+=`<text class="tk" x="${(Lm+W-R)/2}" y="${H-6}" text-anchor="middle">Sampling date</text><text class="tk" transform="translate(16,${(T+H-B)/2}) rotate(-90)" text-anchor="middle">FDA activity (nmol h⁻¹ ml⁻¹)</text>`;
-  g+=`<path d="${pts.map((p,j)=>(j?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join("")}" fill="none" stroke="${DC[i]}" stroke-width="${big?3:2}"/>`;
-  pts.forEach(p=>g+=`<circle class="tp" data-t="${p[2][0]} (${p[2][1]}): ${fmt(p[1])}" cx="${X(p[0])}" cy="${Y(p[1])}" r="${big?5:pts.length>12?2.6:3.5}" fill="${DC[i]}"/>`);
-  const lp=pts[pts.length-1];g+=`<text x="${X(lp[0])+6}" y="${Y(lp[1])+4}" font-size="${big?13:11}" font-weight="700" fill="${DC[i]}">${fmt(lp[1])}</text>`;
+  g+=`<path d="${pts.map((p,j)=>(j?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join("")}" fill="none" stroke="${DCi}" stroke-width="${big?3:2}"/>`;
+  pts.forEach(p=>g+=`<circle class="tp" data-t="${p[2][0]} (${p[2][1]}): ${fmt(p[1])}" cx="${X(p[0])}" cy="${Y(p[1])}" r="${big?5:pts.length>12?2.6:3.5}" fill="${DCi}"/>`);
+  const lp=pts[pts.length-1];g+=`<text x="${X(lp[0])+6}" y="${Y(lp[1])+4}" font-size="${big?13:11}" font-weight="700" fill="${DCi}">${fmt(lp[1])}</text>`;
   g+=`</svg>`;el.innerHTML=g;
   el.querySelectorAll(".tp").forEach(c=>{c.addEventListener("mousemove",e=>{tip.innerHTML=c.dataset.t;tip.hidden=false;tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(e.clientY+12)+"px"});c.addEventListener("mouseleave",()=>tip.hidden=true)});
  }));
