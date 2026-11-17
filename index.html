@@ -182,7 +182,7 @@ function render(){
  const F=D.fda,depth=F.cols.slice(0,5),S=Object.assign({},D.sensors,{Control:(D.sensors.Control||[]).map(r=>[r[0]+CTRL_OFF,...r.slice(1)])});
  const PH=460;
  const m=document.getElementById("main");
- m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section><section id="nitrate"><h2>Nitrate</h2>${D.nitrate&&D.nitrate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Nitrate – depth profile (latest vs previous)</div><div id="nTrend"></div><div class="leg" id="nTrendLeg"></div></div><div class="card"><div class="ct">Nitrate over time – one graph per depth</div><div class="smg" id="nProf"></div><div class="note" style="text-align:center">Nitrate (ppm) from Final N.xlsx · same scale on every graph · latest value labelled · click a graph to enlarge</div></div></div>`:`<div class="card empty-state">No nitrate results yet.</div>`}</section>
+ m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section><section id="nitrate"><h2>Nitrate</h2>${D.nitrate&&D.nitrate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Nitrate – depth profile (latest vs previous)</div><div id="nTrend"></div><div class="leg" id="nTrendLeg"></div></div><div class="card"><div class="ct">Nitrate over time – one graph per depth</div><div class="smg" id="nProf"></div><div class="note" style="text-align:center">Nitrate (ppm) from Final N.xlsx, corrected for the 1:100 dilution · same scale on every graph · latest value labelled · click a graph to enlarge</div></div></div>`:`<div class="card empty-state">No nitrate results yet.</div>`}</section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
 <section id="moist"><h2>FDA vs VWC</h2><div class="mgrid" id="mGrid"></div><div class="note">FDA activity (left axis, dots) at each sampling time; VWC (right axis, line) from the sensor at the same depth. No VWC sensor at 2 m. Control = bucket irrigated with water only.</div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
@@ -201,7 +201,7 @@ function render(){
   const vals=R2.flatMap(r=>r[2].slice(0,5)).filter(v=>v!=null);const xr=nice(0,Math.max(...vals),big?10:5);
   const ymax=Math.ceil(Math.max(...DEP)+0.5),X=v=>Lm+v/xr.hi*(W-Lm-R),Y=dd=>T+dd/ymax*(H-T-B);
   let g=`<svg viewBox="0 0 ${W} ${H}">`;
-  for(let v=0;v<=xr.hi+1e-9;v+=xr.st)g+=`<line class="gr" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text class="tk" x="${X(v)}" y="${T-8}" text-anchor="middle">${v.toFixed(1)}</text>`;
+  for(let v=0;v<=xr.hi+1e-9;v+=xr.st)g+=`<line class="gr" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text class="tk" x="${X(v)}" y="${T-8}" text-anchor="middle">${xr.hi>=100?Math.round(v):v.toFixed(1)}</text>`;
   for(let dd=0;dd<=ymax+1e-9;dd+=0.5)g+=`<text class="tk" x="${Lm-6}" y="${Y(dd)+3}" text-anchor="end">${dd.toFixed(1)}</text>`;
   g+=`<line class="ax" x1="${Lm}" x2="${Lm}" y1="${T}" y2="${H-B}"/><line class="ax" x1="${Lm}" x2="${W-R}" y1="${T}" y2="${T}"/>`;
   g+=`<text class="tk" x="${(Lm+W-R)/2}" y="${big?20:14}" text-anchor="middle">${cf.unit}</text><text class="tk" transform="translate(${big?18:12},${(T+H-B)/2}) rotate(-90)" text-anchor="middle">Depth (m)</text>`;
@@ -220,7 +220,7 @@ function render(){
  const SMP=cf.panels;
  document.getElementById(cf.prof).innerHTML=SMP.map((p,k)=>`<div class="sm1 zoom"><div class="ct">${p.t}${p.own?' <span style="font-weight:400;color:var(--mute)">(own scale)</span>':""}</div><div id="${cf.sm}${k}"></div></div>`).join("");
  SMP.forEach((sp,k)=>chart(cf.sm+k,cf.name+" over time – "+sp.t,(el,o)=>{const i=sp.col,DCi=sp.c,yMax=sp.own?nice(0,Math.max(...R2.map(r=>r[2][i]).filter(v=>v!=null)),4).hi:fdaMax;
-  const W=o?o.w:300,H=o?o.h:150,big=!!o,Lm=big?60:30,R=big?40:30,T=big?20:14,B=big?44:22;
+  const W=o?o.w:300,H=o?o.h:150,big=!!o,Lm=big?(yMax>=1000?74:60):(yMax>=1000?44:30),R=big?40:30,T=big?20:14,B=big?44:22;
   const pts=R2.map((r,k)=>[TM[k],r[2][i],r]).filter(p=>p[1]!=null);if(!pts.length){el.innerHTML="";return}
   const x0=Math.min(...pts.map(p=>p[0])),x1=Math.max(...pts.map(p=>p[0])),pad=Math.max(0.3,(x1-x0)*0.04);
   const X=x=>Lm+(x-(x0-pad))/((x1+pad)-(x0-pad))*(W-Lm-R),Y=v=>T+(1-v/yMax)*(H-T-B),st=nice(0,yMax,big?8:4).st;
@@ -239,7 +239,7 @@ function render(){
  };
  pair(F.rows,F.times,{name:"FDA activity",unit:"FDA activity (nmol h⁻¹ ml⁻¹)",trend:"trend",leg:"trendLeg",prof:"prof",sm:"sm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false})).concat([{t:"Drainage",col:5,c:"#8a5a2b",own:true}])});
  if(D.nitrate&&D.nitrate.rows.length){const NR=D.nitrate.rows,NT=NR.map(r=>{const k=F.rows.findIndex(x=>x[0]===r[0]);return k>=0&&F.times?F.times[k]:null});
-  pair(NR,NT,{name:"Nitrate",unit:"Nitrate (ppm)",trend:"nTrend",leg:"nTrendLeg",prof:"nProf",sm:"nsm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false}))})}
+  pair(NR,NT,{name:"Nitrate",unit:"Nitrate (ppm, corrected for 1:100 dilution)",trend:"nTrend",leg:"nTrendLeg",prof:"nProf",sm:"nsm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false}))})}
  const FT=F.times||F.rows.map(()=>null);const SEN={"0.5 m":"1","1 m":"2","1.5 m":"3","2 m":null,"2.5 m":"5"};
  const MP=depth.map((d,i)=>({t:"Depth "+d,col:i,sen:SEN[d],sl:SEN[d]?"sensor "+SEN[d]:null})).concat([{t:"Control – irrigated with water",col:6,sen:"Control",sl:"control sensor"}]);
  const lgOf=p=>`<span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>`+(p.sen&&S[p.sen]?`<span><i style="background:#2F6FB3"></i>VWC (${p.sl})</span>`:"");
