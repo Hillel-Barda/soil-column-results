@@ -37,6 +37,7 @@ tr:nth-child(even) td{background:var(--zebra)}td.hi{font-weight:700}
 .mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 @media(max-width:900px){.mgrid{grid-template-columns:1fr}}
 .smg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:6px}.smg .sm1{border-radius:8px;padding:4px}
+.cpick{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.cpick label{font-size:13px;font-weight:600;color:var(--mute);display:flex;gap:6px;align-items:center}.cpick select{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}.rbox{margin-left:auto;font-size:15px;font-weight:700;color:var(--ink);background:var(--zebra);padding:6px 12px;border-radius:8px}.r2c{display:grid;grid-template-columns:2fr 1fr;gap:16px}@media(max-width:1000px){.r2c{grid-template-columns:1fr}}
 .cell{background:var(--card);border-radius:8px;box-shadow:0 1px 2px var(--shadow);padding:6px;min-height:190px}
 .cell.empty{background:transparent;box-shadow:none;color:var(--mute);font-style:italic;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
 .ct{font-size:12px;font-weight:600;text-align:center;color:var(--ink)}
@@ -73,7 +74,7 @@ footer{padding-block:16px;color:var(--mute);font-size:12px;border-top:1px solid 
 
 
 <header class="pad"><div class="hrow"><div><h1>Soil Column Experiment – Results</h1><p>FDA activity by depth and continuous sensor monitoring (VWC, temperature, permittivity, EC)</p></div><div class="live" id="live"><i></i><span id="liveTxt">Connecting to data…</span></div></div></header>
-<nav class="pad"><a href="#fda">FDA activity</a><a href="#nitrate">Nitrate</a><a href="#compare">Compare sensors</a><a href="#moist">FDA vs VWC</a><a href="#grid">All sensor graphs</a></nav>
+<nav class="pad"><a href="#fda">FDA activity</a><a href="#nitrate">Nitrate</a><a href="#compare">Compare sensors</a><a href="#moist">FDA vs VWC</a><a href="#corr">Compare measurements</a><a href="#grid">All sensor graphs</a></nav>
 <main class="pad" id="main"><div class="card empty-state" id="empty">Loading the latest results from Results.xlsx and the CR300 logger…</div></main>
 <div class="tip" id="tip" hidden></div>
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovp"><div class="ovh"><h3 id="ovT"></h3><button id="ovPrev" aria-label="Previous graph">←</button><button id="ovNext" aria-label="Next graph">→</button><button id="ovX">Close</button></div><div class="ovb" id="ovB"></div><div class="leg" id="ovL"></div><div class="ovf">Hover to read values · Esc to close · ← → for other graphs</div></div></div>
@@ -156,9 +157,52 @@ function dual(el,fda,vwc,o){
  sv.addEventListener("mouseleave",()=>{tip.hidden=true;hv.setAttribute("visibility","hidden")});
 }
 
+function dual2(el,A,B,o){
+ o=Object.assign({w:780,h:330},o||{});
+ const W=o.w,H=o.h,big=W>900,L=big?78:54,R=big?78:54,T=16,Bm=46;
+ const all=[...A.pts,...B.pts].filter(p=>p[1]!=null&&p[0]!=null);
+ if(!A.pts.length||!B.pts.length){el.innerHTML='<div class="empty-state">No data for this choice.</div>';return}
+ const xmin=Math.min(...all.map(p=>p[0])),xmax=Math.max(...all.map(p=>p[0])),pad=(xmax-xmin)*0.03||0.5;
+ const sc=s=>{const v=s.pts.map(p=>p[1]).filter(v=>v!=null),lo=Math.min(0,...v),r=nice(lo,Math.max(...v),5);return{lo:Math.min(0,r.lo),hi:r.hi,st:r.st}};
+ const ra=sc(A),rb=sc(B),X=x=>L+(x-(xmin-pad))/((xmax+pad)-(xmin-pad))*(W-L-R),YA=y=>T+(ra.hi-y)/(ra.hi-ra.lo)*(H-T-Bm),YB=y=>T+(rb.hi-y)/(rb.hi-rb.lo)*(H-T-Bm);
+ const lab=v=>Math.abs(v)>=100?Math.round(v):+v.toFixed(2);
+ let g=`<svg viewBox="0 0 ${W} ${H}">`;
+ for(let y=ra.lo;y<=ra.hi+1e-9;y+=ra.st)g+=`<line class="gr" x1="${L}" x2="${W-R}" y1="${YA(y)}" y2="${YA(y)}"/><text class="tk" x="${L-6}" y="${YA(y)+4}" text-anchor="end" fill="${A.c}">${lab(y)}</text>`;
+ for(let y=rb.lo;y<=rb.hi+1e-9;y+=rb.st)g+=`<text class="tk" x="${W-R+6}" y="${YB(y)+4}" style="fill:${B.c}">${lab(y)}</text>`;
+ const m0=Math.ceil(dms(xmin-pad)/864e5)*864e5,nd=Math.floor((dms(xmax+pad)-m0)/864e5)+1,every=Math.max(1,Math.ceil(nd/(big?16:6)));
+ for(let k=0;k<nd;k+=every){const x=(m0+k*864e5-T0)/864e5;g+=`<text class="tk" x="${X(x)}" y="${H-Bm+16}" text-anchor="middle">${dlab(x)}</text>`}
+ g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${H-Bm}" y2="${H-Bm}"/><line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-Bm}" style="stroke:${A.c}"/><line class="ax" x1="${W-R}" x2="${W-R}" y1="${T}" y2="${H-Bm}" style="stroke:${B.c}"/>`;
+ g+=`<text class="tk" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">Date</text><text class="tk" transform="translate(16,${(T+H-Bm)/2}) rotate(-90)" text-anchor="middle" style="fill:${A.c};font-weight:600">${A.unit}</text><text class="tk" transform="translate(${W-12},${(T+H-Bm)/2}) rotate(90)" text-anchor="middle" style="fill:${B.c};font-weight:600">${B.unit}</text>`;
+ [[A,YA],[B,YB]].forEach(([s,Y])=>{const p=s.pts.filter(p=>p[1]!=null&&p[0]!=null);
+  if(s.line)g+=`<path d="${p.map((q,j)=>(j?"L":"M")+X(q[0]).toFixed(1)+","+Y(q[1]).toFixed(1)).join("")}" fill="none" stroke="${s.c}" stroke-width="${big?2:1.5}"/>`;
+  else{g+=`<path d="${p.map((q,j)=>(j?"L":"M")+X(q[0]).toFixed(1)+","+Y(q[1]).toFixed(1)).join("")}" fill="none" stroke="${s.c}" stroke-width="${big?2:1.5}" stroke-dasharray="4,3"/>`;
+   p.forEach(q=>g+=`<circle class="tp" data-t="${q[2]||""} ${s.name}: ${fmt(q[1])}" cx="${X(q[0])}" cy="${Y(q[1])}" r="${big?6:5}" fill="${s.c}" stroke="var(--card)" stroke-width="1.5"/>`)}});
+ g+=`</svg>`;el.innerHTML=g;
+ el.querySelectorAll(".tp").forEach(c=>{c.addEventListener("mousemove",e=>{tip.innerHTML=c.dataset.t;tip.hidden=false;tip.style.left=Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(e.clientY+12)+"px"});c.addEventListener("mouseleave",()=>tip.hidden=true)});
+}
+/* pair two series at the sampling times and compute Pearson r */
+function corrOf(A,B){const pts=[];const sa=A.line?B:A,sb=A.line?A:B;
+ sa.pts.forEach(p=>{if(p[1]==null||p[0]==null)return;let best=null,bd=1e9;sb.pts.forEach(q=>{if(q[1]==null||q[0]==null)return;const d=Math.abs(q[0]-p[0]);if(d<bd){bd=d;best=q}});
+  if(best&&bd<=(sb.line?0.1:0.05))pts.push(A.line?[best[1],p[1]]:[p[1],best[1]])});
+ const n=pts.length;if(n<3)return{n,r:null,pts};const mx=pts.reduce((s,p)=>s+p[0],0)/n,my=pts.reduce((s,p)=>s+p[1],0)/n;
+ let sxy=0,sxx=0,syy=0;pts.forEach(p=>{sxy+=(p[0]-mx)*(p[1]-my);sxx+=(p[0]-mx)**2;syy+=(p[1]-my)**2});return{n,r:sxx&&syy?sxy/Math.sqrt(sxx*syy):null,pts}}
+function scatter(el,A,B,c,o){o=Object.assign({w:400,h:330},o||{});const W=o.w,H=o.h,L=64,R=16,T=16,Bm=50;
+ if(c.pts.length<2){el.innerHTML='<div class="empty-state">Not enough matching samples.</div>';return}
+ const xs=c.pts.map(p=>p[0]),ys=c.pts.map(p=>p[1]),xr=nice(Math.min(0,...xs),Math.max(...xs),4),yr=nice(Math.min(0,...ys),Math.max(...ys),5);xr.lo=Math.min(0,xr.lo);yr.lo=Math.min(0,yr.lo);
+ const X=x=>L+(x-xr.lo)/(xr.hi-xr.lo)*(W-L-R),Y=y=>T+(yr.hi-y)/(yr.hi-yr.lo)*(H-T-Bm),lab=v=>Math.abs(v)>=100?Math.round(v):+v.toFixed(2);
+ let g=`<svg viewBox="0 0 ${W} ${H}">`;
+ for(let y=yr.lo;y<=yr.hi+1e-9;y+=yr.st)g+=`<line class="gr" x1="${L}" x2="${W-R}" y1="${Y(y)}" y2="${Y(y)}"/><text class="tk" x="${L-6}" y="${Y(y)+4}" text-anchor="end">${lab(y)}</text>`;
+ for(let x=xr.lo;x<=xr.hi+1e-9;x+=xr.st)g+=`<line class="gr" x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H-Bm}"/><text class="tk" x="${X(x)}" y="${H-Bm+16}" text-anchor="middle">${lab(x)}</text>`;
+ g+=`<line class="ax" x1="${L}" x2="${W-R}" y1="${H-Bm}" y2="${H-Bm}"/><line class="ax" x1="${L}" x2="${L}" y1="${T}" y2="${H-Bm}"/>`;
+ g+=`<text class="tk" x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle" style="fill:${A.c};font-weight:600">${A.unit}</text><text class="tk" transform="translate(14,${(T+H-Bm)/2}) rotate(-90)" text-anchor="middle" style="fill:${B.c};font-weight:600">${B.unit}</text>`;
+ const n=c.pts.length,mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;let sxy=0,sxx=0;c.pts.forEach(p=>{sxy+=(p[0]-mx)*(p[1]-my);sxx+=(p[0]-mx)**2});
+ if(sxx){const sl=sxy/sxx,ic=my-sl*mx,x1=Math.min(...xs),x2=Math.max(...xs);g+=`<line x1="${X(x1)}" y1="${Y(ic+sl*x1)}" x2="${X(x2)}" y2="${Y(ic+sl*x2)}" stroke="var(--axis)" stroke-width="2" stroke-dasharray="6,4"/>`}
+ c.pts.forEach(p=>g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="6" fill="#1e4e8c" opacity=".85"><title>${fmt(p[0])}, ${fmt(p[1])}</title></circle>`);
+ el.innerHTML=g+`</svg>`}
+
 /* register a chart: draw small, make its card open full screen */
 function chart(id,title,draw,legend){
- CH[id]={title,draw,legend};order.push(id);
+ CH[id]={title,draw,legend};if(!order.includes(id))order.push(id);
  const el=document.getElementById(id);draw(el,false);
  const box=el.closest(".zoom");
  if(box&&!box.dataset.z){box.dataset.z=id;box.tabIndex=0;box.setAttribute("role","button");box.setAttribute("aria-label","Open "+title+" full screen");box.insertAdjacentHTML("beforeend",XP)}
@@ -182,13 +226,11 @@ function render(){
  const F=D.fda,depth=F.cols.slice(0,5),S=Object.assign({},D.sensors,{Control:(D.sensors.Control||[]).map(r=>[r[0]+CTRL_OFF,...r.slice(1)])});
  const PH=460;
  const m=document.getElementById("main");
- m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="card" style="margin-bottom:16px"><div class="tw"><table id="fdaT"></table></div></div><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section><section id="nitrate"><h2>Nitrate</h2>${D.nitrate&&D.nitrate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Nitrate – depth profile (latest vs previous)</div><div id="nTrend"></div><div class="leg" id="nTrendLeg"></div></div><div class="card"><div class="ct">Nitrate over time – one graph per depth</div><div class="smg" id="nProf"></div><div class="note" style="text-align:center">Nitrate (ppm) from Final N.xlsx, corrected for the 1:100 dilution · same scale on every graph · latest value labelled · click a graph to enlarge</div></div></div>`:`<div class="card empty-state">No nitrate results yet.</div>`}</section>
+ m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section><section id="nitrate"><h2>Nitrate</h2>${D.nitrate&&D.nitrate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Nitrate – depth profile (latest vs previous)</div><div id="nTrend"></div><div class="leg" id="nTrendLeg"></div></div><div class="card"><div class="ct">Nitrate over time – one graph per depth</div><div class="smg" id="nProf"></div></div></div>`:`<div class="card empty-state">No nitrate results yet.</div>`}</section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
 <section id="moist"><h2>FDA vs VWC</h2><div class="mgrid" id="mGrid"></div><div class="note">FDA activity (left axis, dots) at each sampling time; VWC (right axis, line) from the sensor at the same depth. No VWC sensor at 2 m. Control = bucket irrigated with water only.</div></section>
+<section id="corr"><h2>Compare two measurements</h2><div class="card"><div class="cpick"><label>Measurement 1 <select id="cA"></select></label><label>Measurement 2 <select id="cB"></select></label><label>Where <select id="cW"></select></label><span class="rbox" id="cR"></span></div><div class="row r2c"><div class="zoom" style="border-radius:8px"><div class="ct" id="cT1"></div><div id="cTime"></div></div><div class="zoom" style="border-radius:8px"><div class="ct">Scatter at matching sampling times</div><div id="cSc"></div></div></div></div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
- let t="<tr><th>Sample</th><th>Date</th>"+F.cols.map(c=>`<th>${c}</th>`).join("")+"</tr>";
- F.rows.forEach(r=>{t+=`<tr><td>${r[0]}</td><td>${r[1]}</td>`+r[2].map((v,i)=>`<td>${v==null?"–":v.toFixed(4)}</td>`).join("")+"</tr>"});
- document.getElementById("fdaT").innerHTML=t;
  const f0=F.rows[0],f1=F.rows[F.rows.length-1];const avg=a=>{a=a.filter(v=>v!=null);return a.reduce((x,y)=>x+y,0)/a.length};const f2=v=>v==null?"–":v.toFixed(2);
 
  const DEP=depth.map(d=>parseFloat(d));
@@ -197,9 +239,9 @@ function render(){
  const profLeg=()=>`<span><i style="background:#1e4e8c;height:4px"></i>Latest: ${last[0]} – ${last[1]}</span>`+(prev?`<span><i style="background:#E07B39"></i>Previous: ${prev[0]} – ${prev[1]}</span>`:"")+(n>2?`<span><i style="background:#b8c0cc"></i>Earlier samplings</span>`:"");
  document.getElementById(cf.leg).innerHTML=profLeg();
  chart(cf.trend,cf.name+" – depth profile (latest vs previous)",(el,o)=>{
-  const W=o?o.w:560,H=o?o.h:PH,big=!!o,Lm=big?70:54,R=big?30:22,T=big?58:46,B=big?20:14;
+  const W=o?o.w:560,H=o?o.h:PH,big=!!o,Lm=big?70:54,R=big?30:22,T=big?58:46,B=big?30:24;
   const vals=R2.flatMap(r=>r[2].slice(0,5)).filter(v=>v!=null);const xr=nice(0,Math.max(...vals),big?10:5);
-  const ymax=Math.ceil(Math.max(...DEP)+0.5),X=v=>Lm+v/xr.hi*(W-Lm-R),Y=dd=>T+dd/ymax*(H-T-B);
+  const ymax=Math.max(...DEP),X=v=>Lm+v/xr.hi*(W-Lm-R),Y=dd=>T+dd/ymax*(H-T-B);
   let g=`<svg viewBox="0 0 ${W} ${H}">`;
   for(let v=0;v<=xr.hi+1e-9;v+=xr.st)g+=`<line class="gr" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H-B}"/><text class="tk" x="${X(v)}" y="${T-8}" text-anchor="middle">${xr.hi>=100?Math.round(v):v.toFixed(1)}</text>`;
   for(let dd=0;dd<=ymax+1e-9;dd+=0.5)g+=`<text class="tk" x="${Lm-6}" y="${Y(dd)+3}" text-anchor="end">${dd.toFixed(1)}</text>`;
@@ -239,12 +281,33 @@ function render(){
  };
  pair(F.rows,F.times,{name:"FDA activity",unit:"FDA activity (nmol h⁻¹ ml⁻¹)",trend:"trend",leg:"trendLeg",prof:"prof",sm:"sm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false})).concat([{t:"Drainage",col:5,c:"#8a5a2b",own:true}])});
  if(D.nitrate&&D.nitrate.rows.length){const NR=D.nitrate.rows,NT=NR.map(r=>{const k=F.rows.findIndex(x=>x[0]===r[0]);return k>=0&&F.times?F.times[k]:null});
-  pair(NR,NT,{name:"Nitrate",unit:"Nitrate (ppm, corrected for 1:100 dilution)",trend:"nTrend",leg:"nTrendLeg",prof:"nProf",sm:"nsm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false}))})}
+  pair(NR,NT,{name:"Nitrate",unit:"NO3 (ppm)",trend:"nTrend",leg:"nTrendLeg",prof:"nProf",sm:"nsm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false}))})}
  const FT=F.times||F.rows.map(()=>null);const SEN={"0.5 m":"1","1 m":"2","1.5 m":"3","2 m":null,"2.5 m":"5"};
  const MP=depth.map((d,i)=>({t:"Depth "+d,col:i,sen:SEN[d],sl:SEN[d]?"sensor "+SEN[d]:null})).concat([{t:"Control – irrigated with water",col:6,sen:"Control",sl:"control sensor"}]);
  const lgOf=p=>`<span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>`+(p.sen&&S[p.sen]?`<span><i style="background:#2F6FB3"></i>VWC (${p.sl})</span>`:"");
  document.getElementById("mGrid").innerHTML=MP.map((p,k)=>`<div class="card zoom"><div class="ct">${p.t}${p.sen?"":" (no VWC sensor)"}</div><div id="m${k}"></div><div class="leg">${lgOf(p)}</div></div>`).join("");
  MP.forEach((p,k)=>chart("m"+k,p.t+" – FDA vs VWC"+(p.sen?"":" (no VWC sensor)"),(el,o)=>dual(el,[{n:"FDA activity",c:"#E07B39",pts:F.rows.map((r,q)=>[FT[q],r[2][p.col]])}],p.sen&&S[p.sen]?[{n:"VWC ("+p.sl+")",c:"#2F6FB3",pts:S[p.sen].map(r=>[r[0],r[1]])}]:[],o),()=>lgOf(p)));
+ {const WH=depth.map((d,i)=>({k:d,t:"Depth "+d,col:i,sen:SEN[d]})).concat([{k:"Drainage",t:"Drainage",col:5,sen:null},{k:"Control",t:"Control",col:6,sen:"Control"}]);
+  const NRo=D.nitrate&&D.nitrate.rows||[],nT=n=>{const k=F.rows.findIndex(x=>x[0]===n);return k>=0&&F.times?F.times[k]:null};
+  const M={fda:{name:"FDA activity",unit:"FDA (nmol h⁻¹ ml⁻¹)",get:w=>F.rows.map((r,q)=>[FT[q],r[2][w.col],r[0]])},
+   no3:{name:"NO3",unit:"NO3 (ppm)",get:w=>w.col<5?NRo.map(r=>[nT(r[0]),r[2][w.col],r[0]]):[]},
+   vwc:{name:"VWC",unit:"VWC (%)",line:1,get:w=>w.sen&&S[w.sen]?S[w.sen].map(r=>[r[0],r[1]]):[]},
+   temp:{name:"Temperature",unit:"Temperature (°C)",line:1,get:w=>w.sen&&S[w.sen]?S[w.sen].map(r=>[r[0],r[2]]):[]},
+   per:{name:"Permittivity",unit:"Permittivity",line:1,get:w=>w.sen&&S[w.sen]?S[w.sen].map(r=>[r[0],r[3]]):[]},
+   ec:{name:"EC",unit:"EC",line:1,get:w=>w.sen&&S[w.sen]?S[w.sen].map(r=>[r[0],r[4]]):[]}};
+  const opt=(el,obj,sel)=>{el.innerHTML=Object.entries(obj).map(([k,v])=>`<option value="${k}"${k===sel?" selected":""}>${v.name||v.t}</option>`).join("")};
+  const cA=document.getElementById("cA"),cB=document.getElementById("cB"),cW=document.getElementById("cW");
+  const st=window._corrSel||{a:"fda",b:"no3",w:"0.5 m"};
+  opt(cA,M,st.a);opt(cB,M,st.b);cW.innerHTML=WH.map(w=>`<option value="${w.k}"${w.k===st.w?" selected":""}>${w.t}</option>`).join("");
+  const draw=()=>{window._corrSel={a:cA.value,b:cB.value,w:cW.value};const w=WH.find(x=>x.k===cW.value),ma=M[cA.value],mb=M[cB.value];
+   const A={name:ma.name,unit:ma.unit,line:ma.line,c:"#E07B39",pts:ma.get(w)},B={name:mb.name,unit:mb.unit,line:mb.line,c:"#2F6FB3",pts:mb.get(w)};
+   if(ma.line&&!mb.line){A.c="#2F6FB3";B.c="#E07B39"}
+   if(ma.line&&A.unit.endsWith("EC")&&w.k==="Control")A.unit="EC (mS/cm)";if(mb.line&&B.unit.endsWith("EC")&&w.k==="Control")B.unit="EC (mS/cm)";
+   const c=corrOf(A,B);document.getElementById("cR").textContent=c.r==null?`Not enough matching samples (n = ${c.n})`:`r = ${c.r.toFixed(2)}  ·  n = ${c.n}`;
+   document.getElementById("cT1").textContent=`${A.name} and ${B.name} over time – ${w.t}`;
+   chart("cTime",`${A.name} vs ${B.name} – ${w.t}`,(el,o)=>dual2(el,A,B,o),()=>`<span><i style="background:${A.c}"></i>${A.name} (left axis)</span><span><i style="background:${B.c}"></i>${B.name} (right axis)</span>`);
+   chart("cSc",`${A.name} vs ${B.name} – scatter – ${w.t}`,(el,o)=>scatter(el,A,B,c,o))};
+  [cA,cB,cW].forEach(e=>e.onchange=draw);draw();}
  const xm=Math.max(...names.map(n=>maxDay(S[n])));
  const cmpLeg=()=>names.map(n=>`<span><i style="background:${SC[n]}"></i>${n==="Control"?"Control – irrigated with water":"Sensor "+n}</span>`).join("");
  const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,dates:1,xt:"Date",yt:P[cur][1]+(cur===3?" (Control in mS/cm)":"")},o||{}));
