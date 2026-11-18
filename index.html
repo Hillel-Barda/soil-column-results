@@ -163,7 +163,7 @@ function dual2(el,A,B,o){
  const all=[...A.pts,...B.pts].filter(p=>p[1]!=null&&p[0]!=null);
  if(!A.pts.length||!B.pts.length){el.innerHTML='<div class="empty-state">No data for this choice.</div>';return}
  const xmin=Math.min(...all.map(p=>p[0])),xmax=Math.max(...all.map(p=>p[0])),pad=(xmax-xmin)*0.03||0.5;
- const sc=s=>{const v=s.pts.map(p=>p[1]).filter(v=>v!=null),lo=Math.min(0,...v),r=nice(lo,Math.max(...v),5);return{lo:Math.min(0,r.lo),hi:r.hi,st:r.st}};
+ const sc=s=>{const v=s.pts.map(p=>p[1]).filter(v=>v!=null);return nice(Math.min(...v),Math.max(...v),5)};  // auto range, like Excel
  const ra=sc(A),rb=sc(B),X=x=>L+(x-(xmin-pad))/((xmax+pad)-(xmin-pad))*(W-L-R),YA=y=>T+(ra.hi-y)/(ra.hi-ra.lo)*(H-T-Bm),YB=y=>T+(rb.hi-y)/(rb.hi-rb.lo)*(H-T-Bm);
  const lab=v=>Math.abs(v)>=100?Math.round(v):+v.toFixed(2);
  let g=`<svg viewBox="0 0 ${W} ${H}">`;
@@ -188,7 +188,7 @@ function corrOf(A,B){const pts=[];const sa=A.line?B:A,sb=A.line?A:B;
  let sxy=0,sxx=0,syy=0;pts.forEach(p=>{sxy+=(p[0]-mx)*(p[1]-my);sxx+=(p[0]-mx)**2;syy+=(p[1]-my)**2});return{n,r:sxx&&syy?sxy/Math.sqrt(sxx*syy):null,pts}}
 function scatter(el,A,B,c,o){o=Object.assign({w:400,h:330},o||{});const W=o.w,H=o.h,L=64,R=16,T=16,Bm=50;
  if(c.pts.length<2){el.innerHTML='<div class="empty-state">Not enough matching samples.</div>';return}
- const xs=c.pts.map(p=>p[0]),ys=c.pts.map(p=>p[1]),xr=nice(Math.min(0,...xs),Math.max(...xs),4),yr=nice(Math.min(0,...ys),Math.max(...ys),5);xr.lo=Math.min(0,xr.lo);yr.lo=Math.min(0,yr.lo);
+ const xs=c.pts.map(p=>p[0]),ys=c.pts.map(p=>p[1]),xr=nice(Math.min(...xs),Math.max(...xs),4),yr=nice(Math.min(...ys),Math.max(...ys),5);
  const X=x=>L+(x-xr.lo)/(xr.hi-xr.lo)*(W-L-R),Y=y=>T+(yr.hi-y)/(yr.hi-yr.lo)*(H-T-Bm),lab=v=>Math.abs(v)>=100?Math.round(v):+v.toFixed(2);
  let g=`<svg viewBox="0 0 ${W} ${H}">`;
  for(let y=yr.lo;y<=yr.hi+1e-9;y+=yr.st)g+=`<line class="gr" x1="${L}" x2="${W-R}" y1="${Y(y)}" y2="${Y(y)}"/><text class="tk" x="${L-6}" y="${Y(y)+4}" text-anchor="end">${lab(y)}</text>`;
