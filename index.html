@@ -38,6 +38,13 @@ tr:nth-child(even) td{background:var(--zebra)}td.hi{font-weight:700}
 @media(max-width:900px){.mgrid{grid-template-columns:1fr}}
 .smg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:6px}.smg .sm1{border-radius:8px;padding:4px}
 .cpick{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.cpick label{font-size:13px;font-weight:600;color:var(--mute);display:flex;gap:6px;align-items:center}.cpick select{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}.rbox{margin-left:auto;font-size:15px;font-weight:700;color:var(--ink);background:var(--zebra);padding:6px 12px;border-radius:8px}.r2c{display:grid;grid-template-columns:2fr 1fr;gap:16px}@media(max-width:1000px){.r2c{grid-template-columns:1fr}}
+.drange{display:flex;align-items:center;gap:12px;margin:0 0 14px;flex-wrap:wrap}.drange .dl{font-size:13px;font-weight:600;color:var(--mute)}.drange .dv{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;min-width:96px;color:var(--ink)}#dTo{text-align:right}
+.dslider{position:relative;flex:1;min-width:220px;height:28px}.dtrack{position:absolute;left:0;right:0;top:12px;height:4px;border-radius:2px;background:var(--line)}.dfill{position:absolute;top:0;height:4px;border-radius:2px;background:var(--blue)}
+.dslider input{position:absolute;left:0;top:0;width:100%;height:28px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.dslider input::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;width:18px;height:18px;border-radius:50%;background:var(--card);border:3px solid var(--blue);cursor:grab}
+.dslider input::-moz-range-thumb{pointer-events:auto;width:14px;height:14px;border-radius:50%;background:var(--card);border:3px solid var(--blue);cursor:grab}
+.dslider input::-webkit-slider-runnable-track{background:none}.dslider input::-moz-range-track{background:none}
+.drange button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:4px 12px;font:inherit;font-size:12px;font-weight:600;color:var(--mute);cursor:pointer}
 .cell{background:var(--card);border-radius:8px;box-shadow:0 1px 2px var(--shadow);padding:6px;min-height:190px}
 .cell.empty{background:transparent;box-shadow:none;color:var(--mute);font-style:italic;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
 .ct{font-size:12px;font-weight:600;text-align:center;color:var(--ink)}
@@ -74,7 +81,7 @@ footer{padding-block:16px;color:var(--mute);font-size:12px;border-top:1px solid 
 
 
 <header class="pad"><div class="hrow"><div><h1>Soil Column Experiment – Results</h1><p>FDA activity by depth and continuous sensor monitoring (VWC, temperature, permittivity, EC)</p></div><div class="live" id="live"><i></i><span id="liveTxt">Connecting to data…</span></div></div></header>
-<nav class="pad"><a href="#fda">FDA activity</a><a href="#nitrate">Nitrate</a><a href="#compare">Compare sensors</a><a href="#moist">FDA vs VWC</a><a href="#corr">Compare measurements</a><a href="#grid">All sensor graphs</a></nav>
+<nav class="pad"><a href="#fda">FDA activity</a><a href="#nitrate">Nitrate</a><a href="#compare">Compare sensors</a><a href="#corr">Compare measurements</a><a href="#grid">All sensor graphs</a></nav>
 <main class="pad" id="main"><div class="card empty-state" id="empty">Loading the latest results from Results.xlsx and the CR300 logger…</div></main>
 <div class="tip" id="tip" hidden></div>
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovp"><div class="ovh"><h3 id="ovT"></h3><button id="ovPrev" aria-label="Previous graph">←</button><button id="ovNext" aria-label="Next graph">→</button><button id="ovX">Close</button></div><div class="ovb" id="ovB"></div><div class="leg" id="ovL"></div><div class="ovf">Hover to read values · Esc to close · ← → for other graphs</div></div></div>
@@ -161,8 +168,8 @@ function dual2(el,A,B,o){
  o=Object.assign({w:780,h:330},o||{});
  const W=o.w,H=o.h,big=W>900,L=big?78:54,R=big?78:54,T=16,Bm=46;
  const all=[...A.pts,...B.pts].filter(p=>p[1]!=null&&p[0]!=null);
- if(!A.pts.length||!B.pts.length){el.innerHTML='<div class="empty-state">No data for this choice.</div>';return}
- const xmin=Math.min(...all.map(p=>p[0])),xmax=Math.max(...all.map(p=>p[0])),pad=(xmax-xmin)*0.03||0.5;
+ if(!A.pts.length||!B.pts.length){el.innerHTML='<div class="empty-state">No data for this choice and date range.</div>';return}
+ const xmin=o.x0??Math.min(...all.map(p=>p[0])),xmax=o.x1??Math.max(...all.map(p=>p[0])),pad=o.x0!=null?0:((xmax-xmin)*0.03||0.5);
  const sc=s=>{const v=s.pts.map(p=>p[1]).filter(v=>v!=null);return nice(Math.min(...v),Math.max(...v),5)};  // auto range, like Excel
  const ra=sc(A),rb=sc(B),X=x=>L+(x-(xmin-pad))/((xmax+pad)-(xmin-pad))*(W-L-R),YA=y=>T+(ra.hi-y)/(ra.hi-ra.lo)*(H-T-Bm),YB=y=>T+(rb.hi-y)/(rb.hi-rb.lo)*(H-T-Bm);
  const lab=v=>Math.abs(v)>=100?Math.round(v):+v.toFixed(2);
@@ -228,8 +235,8 @@ function render(){
  const m=document.getElementById("main");
  m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section><section id="nitrate"><h2>Nitrate</h2>${D.nitrate&&D.nitrate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Nitrate – depth profile (latest vs previous)</div><div id="nTrend"></div><div class="leg" id="nTrendLeg"></div></div><div class="card"><div class="ct">Nitrate over time – one graph per depth</div><div class="smg" id="nProf"></div></div></div>`:`<div class="card empty-state">No nitrate results yet.</div>`}</section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
-<section id="moist"><h2>FDA vs VWC</h2><div class="mgrid" id="mGrid"></div><div class="note">FDA activity (left axis, dots) at each sampling time; VWC (right axis, line) from the sensor at the same depth. No VWC sensor at 2 m. Control = bucket irrigated with water only.</div></section>
-<section id="corr"><h2>Compare two measurements</h2><div class="card"><div class="cpick"><label>Measurement 1 <select id="cA"></select></label><label>Measurement 2 <select id="cB"></select></label><label>Where <select id="cW"></select></label><span class="rbox" id="cR"></span></div><div class="row r2c"><div class="zoom" style="border-radius:8px"><div class="ct" id="cT1"></div><div id="cTime"></div></div><div class="zoom" style="border-radius:8px"><div class="ct">Scatter at matching sampling times</div><div id="cSc"></div></div></div></div></section>
+
+<section id="corr"><h2>Compare two measurements</h2><div class="card"><div class="cpick"><label>Measurement 1 <select id="cA"></select></label><label>Measurement 2 <select id="cB"></select></label><label>Where <select id="cW"></select></label><span class="rbox" id="cR"></span></div><div class="drange"><span class="dl">Dates</span><span class="dv" id="dFrom"></span><div class="dslider"><div class="dtrack"><div class="dfill" id="dFill"></div></div><input type="range" id="d0" aria-label="Start date"><input type="range" id="d1" aria-label="End date"></div><span class="dv" id="dTo"></span><button type="button" id="dAll">All dates</button></div><div class="row r2c"><div class="zoom" style="border-radius:8px"><div class="ct" id="cT1"></div><div id="cTime"></div></div><div class="zoom" style="border-radius:8px"><div class="ct">Scatter at matching sampling times</div><div id="cSc"></div></div></div></div></section>
 <section id="grid"><h2>All sensor graphs</h2><div class="gwrap"><div class="grid" id="g"></div></div><div class="note">Hourly averages of 5-minute logger readings (CR300 TDT sensors 1, 2, 3, 5; TDR control). Click any graph to open it full screen. EC unit for sensors 1–5 not given in source data.</div></section>`;
  const f0=F.rows[0],f1=F.rows[F.rows.length-1];const avg=a=>{a=a.filter(v=>v!=null);return a.reduce((x,y)=>x+y,0)/a.length};const f2=v=>v==null?"–":v.toFixed(2);
 
@@ -283,10 +290,6 @@ function render(){
  if(D.nitrate&&D.nitrate.rows.length){const NR=D.nitrate.rows,NT=NR.map(r=>{const k=F.rows.findIndex(x=>x[0]===r[0]);return k>=0&&F.times?F.times[k]:null});
   pair(NR,NT,{name:"Nitrate",unit:"NO3 (ppm)",trend:"nTrend",leg:"nTrendLeg",prof:"nProf",sm:"nsm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false}))})}
  const FT=F.times||F.rows.map(()=>null);const SEN={"0.5 m":"1","1 m":"2","1.5 m":"3","2 m":null,"2.5 m":"5"};
- const MP=depth.map((d,i)=>({t:"Depth "+d,col:i,sen:SEN[d],sl:SEN[d]?"sensor "+SEN[d]:null})).concat([{t:"Control – irrigated with water",col:6,sen:"Control",sl:"control sensor"}]);
- const lgOf=p=>`<span><i style="background:#E07B39;height:8px;width:8px;border-radius:50%"></i>FDA activity</span>`+(p.sen&&S[p.sen]?`<span><i style="background:#2F6FB3"></i>VWC (${p.sl})</span>`:"");
- document.getElementById("mGrid").innerHTML=MP.map((p,k)=>`<div class="card zoom"><div class="ct">${p.t}${p.sen?"":" (no VWC sensor)"}</div><div id="m${k}"></div><div class="leg">${lgOf(p)}</div></div>`).join("");
- MP.forEach((p,k)=>chart("m"+k,p.t+" – FDA vs VWC"+(p.sen?"":" (no VWC sensor)"),(el,o)=>dual(el,[{n:"FDA activity",c:"#E07B39",pts:F.rows.map((r,q)=>[FT[q],r[2][p.col]])}],p.sen&&S[p.sen]?[{n:"VWC ("+p.sl+")",c:"#2F6FB3",pts:S[p.sen].map(r=>[r[0],r[1]])}]:[],o),()=>lgOf(p)));
  {const WH=depth.map((d,i)=>({k:d,t:"Depth "+d,col:i,sen:SEN[d]})).concat([{k:"Drainage",t:"Drainage",col:5,sen:null},{k:"Control",t:"Control",col:6,sen:"Control"}]);
   const NRo=D.nitrate&&D.nitrate.rows||[],nT=n=>{const k=F.rows.findIndex(x=>x[0]===n);return k>=0&&F.times?F.times[k]:null};
   const M={fda:{name:"FDA activity",unit:"FDA (nmol h⁻¹ ml⁻¹)",get:w=>F.rows.map((r,q)=>[FT[q],r[2][w.col],r[0]])},
@@ -299,15 +302,27 @@ function render(){
   const cA=document.getElementById("cA"),cB=document.getElementById("cB"),cW=document.getElementById("cW");
   const st=window._corrSel||{a:"fda",b:"no3",w:"0.5 m"};
   opt(cA,M,st.a);opt(cB,M,st.b);cW.innerHTML=WH.map(w=>`<option value="${w.k}"${w.k===st.w?" selected":""}>${w.t}</option>`).join("");
-  const draw=()=>{window._corrSel={a:cA.value,b:cB.value,w:cW.value};const w=WH.find(x=>x.k===cW.value),ma=M[cA.value],mb=M[cB.value];
-   const A={name:ma.name,unit:ma.unit,line:ma.line,c:"#E07B39",pts:ma.get(w)},B={name:mb.name,unit:mb.unit,line:mb.line,c:"#2F6FB3",pts:mb.get(w)};
+  const d0=document.getElementById("d0"),d1=document.getElementById("d1");
+  const draw=(keepRange)=>{window._corrSel={a:cA.value,b:cB.value,w:cW.value};const w=WH.find(x=>x.k===cW.value),ma=M[cA.value],mb=M[cB.value];
+   const Af={name:ma.name,unit:ma.unit,line:ma.line,c:"#E07B39",pts:ma.get(w)},Bf={name:mb.name,unit:mb.unit,line:mb.line,c:"#2F6FB3",pts:mb.get(w)};
+   const xsAll=[...Af.pts,...Bf.pts].filter(p=>p[0]!=null&&p[1]!=null).map(p=>p[0]);
+   const lo=xsAll.length?Math.floor(Math.min(...xsAll)*24)/24:0,hi=xsAll.length?Math.ceil(Math.max(...xsAll)*24)/24:1;
+   [d0,d1].forEach(e=>{e.min=lo;e.max=hi;e.step=1/24});
+   const R=window._corrFull===false?window._corrRange:null;let x0=R&&keepRange!==false?Math.max(lo,Math.min(R[0],hi)):lo,x1=R&&keepRange!==false?Math.min(hi,Math.max(R[1],lo)):hi;if(x1<=x0){x0=lo;x1=hi}
+   d0.value=x0;d1.value=x1;window._corrRange=[x0,x1];
+   const pc=v=>hi>lo?(v-lo)/(hi-lo)*100:0,fl=document.getElementById("dFill");fl.style.left=pc(x0)+"%";fl.style.width=(pc(x1)-pc(x0))+"%";
+   document.getElementById("dFrom").textContent=dtime(x0);document.getElementById("dTo").textContent=dtime(x1);
+   const inR=p=>p[0]!=null&&p[0]>=x0-1e-6&&p[0]<=x1+1e-6;
+   const A=Object.assign({},Af,{pts:Af.pts.filter(inR)}),B=Object.assign({},Bf,{pts:Bf.pts.filter(inR)});
    if(ma.line&&!mb.line){A.c="#2F6FB3";B.c="#E07B39"}
    if(ma.line&&A.unit.endsWith("EC")&&w.k==="Control")A.unit="EC (mS/cm)";if(mb.line&&B.unit.endsWith("EC")&&w.k==="Control")B.unit="EC (mS/cm)";
    const c=corrOf(A,B);document.getElementById("cR").textContent=c.r==null?`Not enough matching samples (n = ${c.n})`:`r = ${c.r.toFixed(2)}  ·  n = ${c.n}`;
    document.getElementById("cT1").textContent=`${A.name} and ${B.name} over time – ${w.t}`;
-   chart("cTime",`${A.name} vs ${B.name} – ${w.t}`,(el,o)=>dual2(el,A,B,o),()=>`<span><i style="background:${A.c}"></i>${A.name} (left axis)</span><span><i style="background:${B.c}"></i>${B.name} (right axis)</span>`);
+   chart("cTime",`${A.name} vs ${B.name} – ${w.t}`,(el,o)=>dual2(el,A,B,Object.assign({},o||{},{x0,x1})),()=>`<span><i style="background:${A.c}"></i>${A.name} (left axis)</span><span><i style="background:${B.c}"></i>${B.name} (right axis)</span>`);
    chart("cSc",`${A.name} vs ${B.name} – scatter – ${w.t}`,(el,o)=>scatter(el,A,B,c,o))};
-  [cA,cB,cW].forEach(e=>e.onchange=draw);draw();}
+  [cA,cB,cW].forEach(e=>e.onchange=()=>draw(true));
+  const slide=e=>{let a=+d0.value,b=+d1.value;if(a>b-1/24){if(e.target===d0)a=b-1/24;else b=a+1/24;d0.value=a;d1.value=b}window._corrRange=[a,b];window._corrFull=false;draw(true)};
+  d0.oninput=slide;d1.oninput=slide;document.getElementById("dAll").onclick=()=>{window._corrRange=null;window._corrFull=true;draw(false)};draw(true);}
  const xm=Math.max(...names.map(n=>maxDay(S[n])));
  const cmpLeg=()=>names.map(n=>`<span><i style="background:${SC[n]}"></i>${n==="Control"?"Control – irrigated with water":"Sensor "+n}</span>`).join("");
  const drawCmp=(el,o)=>line(el,names.map(n=>({n:n==="Control"?"Control":"Sensor "+n,c:SC[n],pts:S[n].map(r=>[r[0],r[1+cur]])})),Object.assign({w:1100,h:320,dates:1,xt:"Date",yt:P[cur][1]+(cur===3?" (Control in mS/cm)":"")},o||{}));
