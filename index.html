@@ -81,7 +81,7 @@ footer{padding-block:16px;color:var(--mute);font-size:12px;border-top:1px solid 
 
 
 <header class="pad"><div class="hrow"><div><h1>Soil Column Experiment – Results</h1><p>FDA activity by depth and continuous sensor monitoring (VWC, temperature, permittivity, EC)</p></div><div class="live" id="live"><i></i><span id="liveTxt">Connecting to data…</span></div></div></header>
-<nav class="pad"><a href="#fda">FDA activity</a><a href="#nitrate">Nitrate</a><a href="#compare">Compare sensors</a><a href="#corr">Compare measurements</a><a href="#grid">All sensor graphs</a></nav>
+<nav class="pad"><a href="#fda">FDA activity</a><a href="#nutrients">Nutrients</a><a href="#compare">Compare sensors</a><a href="#corr">Compare measurements</a><a href="#grid">All sensor graphs</a></nav>
 <main class="pad" id="main"><div class="card empty-state" id="empty">Loading the latest results from Results.xlsx and the CR300 logger…</div></main>
 <div class="tip" id="tip" hidden></div>
 <div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-labelledby="ovT"><div class="ovp"><div class="ovh"><h3 id="ovT"></h3><button id="ovPrev" aria-label="Previous graph">←</button><button id="ovNext" aria-label="Next graph">→</button><button id="ovX">Close</button></div><div class="ovb" id="ovB"></div><div class="leg" id="ovL"></div><div class="ovf">Hover to read values · Esc to close · ← → for other graphs</div></div></div>
@@ -233,7 +233,7 @@ function render(){
  const F=D.fda,depth=F.cols.slice(0,5),S=Object.assign({},D.sensors,{Control:(D.sensors.Control||[]).map(r=>[r[0]+CTRL_OFF,...r.slice(1)])});
  const PH=460;
  const m=document.getElementById("main");
- m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section><section id="nitrate"><h2>Nitrate</h2>${D.nitrate&&D.nitrate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Nitrate – depth profile (latest vs previous)</div><div id="nTrend"></div><div class="leg" id="nTrendLeg"></div></div><div class="card"><div class="ct">Nitrate over time – one graph per depth</div><div class="smg" id="nProf"></div></div></div>`:`<div class="card empty-state">No nitrate results yet.</div>`}</section>
+ m.innerHTML=`<section id="fda"><h2>FDA activity</h2><div class="row r2"><div class="card zoom"><div class="ct">FDA activity – depth profile (latest vs previous)</div><div id="trend"></div><div class="leg" id="trendLeg"></div></div><div class="card"><div class="ct">FDA activity over time – one graph per depth + drainage</div><div class="smg" id="prof"></div><div class="note" style="text-align:center">Depths share one scale; Drainage has its own because its values are much higher · latest value labelled · click a graph to enlarge</div></div></div></section><section id="nutrients"><h2>Nutrients</h2><div class="ctrl" id="nutBtn" role="group" aria-label="Nutrient"><button type="button" data-k="n">Nitrate</button><button type="button" data-k="p">Phosphorus</button></div><div id="nutN">${D.nitrate&&D.nitrate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Nitrate – depth profile (latest vs previous)</div><div id="nTrend"></div><div class="leg" id="nTrendLeg"></div></div><div class="card"><div class="ct">Nitrate over time – one graph per depth</div><div class="smg" id="nProf"></div></div></div>`:`<div class="card empty-state">No nitrate results yet.</div>`}</div><div id="nutP" hidden>${D.phosphate&&D.phosphate.rows.length?`<div class="row r2"><div class="card zoom"><div class="ct">Phosphorus (PO₄) – depth profile (latest vs previous)</div><div id="pTrend"></div><div class="leg" id="pTrendLeg"></div></div><div class="card"><div class="ct">Phosphorus (PO₄) over time – one graph per depth</div><div class="smg" id="pProf"></div></div></div><div class="note">Pore water measured undiluted by the ascorbic acid (molybdenum blue) method at 880 nm. Concentrations from the standard curve${D.phosphate.curve?` (A = ${D.phosphate.curve.slope} × C + ${D.phosphate.curve.intercept}, R² = ${D.phosphate.curve.r2})`:""}, in mg PO₄/L. The nutrient medium added 177 mg PO₄/L.</div>`:`<div class="card empty-state">No phosphorus results yet.</div>`}</div></section>
 <section id="compare"><h2>Compare sensors</h2><div class="card"><div class="ctrl" id="pbtn"></div><div class="zoom" style="border-radius:8px"><div id="cmp"></div></div><div class="leg" id="cmpLeg"></div></div></section>
 
 <section id="corr"><h2>Compare two measurements</h2><div class="card"><div class="cpick"><label>Measurement 1 <select id="cA"></select></label><label>Measurement 2 <select id="cB"></select></label><label>Where <select id="cW"></select></label><span class="rbox" id="cR"></span></div><div class="drange"><span class="dl">Dates</span><span class="dv" id="dFrom"></span><div class="dslider"><div class="dtrack"><div class="dfill" id="dFill"></div></div><input type="range" id="d0" aria-label="Start date"><input type="range" id="d1" aria-label="End date"></div><span class="dv" id="dTo"></span><button type="button" id="dAll">All dates</button></div><div class="row r2c"><div class="zoom" style="border-radius:8px"><div class="ct" id="cT1"></div><div id="cTime"></div></div><div class="zoom" style="border-radius:8px"><div class="ct">Scatter at matching sampling times</div><div id="cSc"></div></div></div></div></section>
@@ -289,11 +289,17 @@ function render(){
  pair(F.rows,F.times,{name:"FDA activity",unit:"FDA activity (nmol h⁻¹ ml⁻¹)",trend:"trend",leg:"trendLeg",prof:"prof",sm:"sm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false})).concat([{t:"Drainage",col:5,c:"#8a5a2b",own:true}])});
  if(D.nitrate&&D.nitrate.rows.length){const NR=D.nitrate.rows,NT=NR.map(r=>{const k=F.rows.findIndex(x=>x[0]===r[0]);return k>=0&&F.times?F.times[k]:null});
   pair(NR,NT,{name:"Nitrate",unit:"NO3 (ppm)",trend:"nTrend",leg:"nTrendLeg",prof:"nProf",sm:"nsm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false}))})}
+ if(D.phosphate&&D.phosphate.rows.length){const PR=D.phosphate.rows,PT=PR.map(r=>{const k=F.rows.findIndex(x=>x[0]===r[0]);return k>=0&&F.times?F.times[k]:null});
+  pair(PR,PT,{name:"Phosphorus (PO₄)",unit:"PO₄ (mg/L)",trend:"pTrend",leg:"pTrendLeg",prof:"pProf",sm:"psm",panels:depth.map((d,i)=>({t:d,col:i,c:DC[i],own:false}))})}
+ {const setNut=k=>{window._nut=k;document.getElementById("nutN").hidden=k!=="n";document.getElementById("nutP").hidden=k!=="p";
+   document.querySelectorAll("#nutBtn button").forEach(b=>{const on=b.dataset.k===k;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)})};
+  document.querySelectorAll("#nutBtn button").forEach(b=>b.onclick=()=>setNut(b.dataset.k));setNut(window._nut||"n")}
  const FT=F.times||F.rows.map(()=>null);const SEN={"0.5 m":"1","1 m":"2","1.5 m":"3","2 m":null,"2.5 m":"5"};
  {const WH=depth.map((d,i)=>({k:d,t:"Depth "+d,col:i,sen:SEN[d]})).concat([{k:"Drainage",t:"Drainage",col:5,sen:null},{k:"Control",t:"Control",col:6,sen:"Control"}]);
-  const NRo=D.nitrate&&D.nitrate.rows||[],nT=n=>{const k=F.rows.findIndex(x=>x[0]===n);return k>=0&&F.times?F.times[k]:null};
+  const NRo=D.nitrate&&D.nitrate.rows||[],PRo=D.phosphate&&D.phosphate.rows||[],nT=n=>{const k=F.rows.findIndex(x=>x[0]===n);return k>=0&&F.times?F.times[k]:null};
   const M={fda:{name:"FDA activity",unit:"FDA (nmol h⁻¹ ml⁻¹)",get:w=>F.rows.map((r,q)=>[FT[q],r[2][w.col],r[0]])},
    no3:{name:"NO3",unit:"NO3 (ppm)",get:w=>w.col<5?NRo.map(r=>[nT(r[0]),r[2][w.col],r[0]]):[]},
+   po4:{name:"PO4",unit:"PO4 (mg/L)",get:w=>w.col<5?PRo.map(r=>[nT(r[0]),r[2][w.col],r[0]]):[]},
    vwc:{name:"VWC",unit:"VWC (%)",line:1,get:w=>w.sen&&S[w.sen]?S[w.sen].map(r=>[r[0],r[1]]):[]},
    temp:{name:"Temperature",unit:"Temperature (°C)",line:1,get:w=>w.sen&&S[w.sen]?S[w.sen].map(r=>[r[0],r[2]]):[]},
    per:{name:"Permittivity",unit:"Permittivity",line:1,get:w=>w.sen&&S[w.sen]?S[w.sen].map(r=>[r[0],r[3]]):[]},
@@ -354,7 +360,7 @@ async function load(first){
   const b=await r.json();
   const changed=fp!==null&&fp!==b.fingerprint;
   if(fp===b.fingerprint)return;
-  fp=b.fingerprint;D={fda:b.fda,sensors:b.sensors,latestReading:b.latestReading,nitrate:b.nitrate};
+  fp=b.fingerprint;D={fda:b.fda,sensors:b.sensors,latestReading:b.latestReading,nitrate:b.nitrate,phosphate:b.phosphate};
   setLive("Latest reading "+(b.latestReading||"–"));render();
   if(changed)toast("New data loaded – graphs updated to "+b.latestReading);
  }catch(e){if(first){setLive("Data unavailable");document.getElementById("empty").textContent="The results data could not be loaded. Check your connection and reload the page."}}
